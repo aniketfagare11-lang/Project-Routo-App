@@ -128,16 +128,16 @@ class _LoginScreenState extends State<LoginScreen>
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF0D47A1), // Deep blue
-                Color(0xFF1565C0), // Blue
-                Color(0xFF1976D2), // Medium blue
-                Color(0xFFE65100), // Deep orange
-                Color(0xFFFF6F00), // Amber orange
+                Color(0xFF0A3880), // Rich deep blue
+                Color(0xFF1565C0), // Brand blue
+                Color(0xFF5B3FBF), // Blue-violet transition
+                Color(0xFFD84315), // Deep orange
+                Color(0xFFFF8F00), // Warm amber
               ],
-              stops: [0.0, 0.25, 0.45, 0.78, 1.0],
+              stops: [0.0, 0.28, 0.52, 0.78, 1.0],
             ),
           ),
           child: SafeArea(
@@ -241,61 +241,52 @@ class _LoginScreenState extends State<LoginScreen>
             child: child,
           ),
           child: Container(
-            width: 88,
-            height: 88,
+            width: 104,
+            height: 104,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                  spreadRadius: 2,
+                  color: Colors.black.withOpacity(0.22),
+                  blurRadius: 28,
+                  offset: const Offset(0, 10),
+                  spreadRadius: 0,
                 ),
                 BoxShadow(
-                  color: const Color(0xFFFF6F00).withOpacity(0.3),
-                  blurRadius: 32,
-                  offset: const Offset(0, 4),
-                  spreadRadius: 4,
+                  color: const Color(0xFF1565C0).withOpacity(0.35),
+                  blurRadius: 40,
+                  offset: const Offset(0, 0),
+                  spreadRadius: 2,
                 ),
               ],
             ),
-            child: Center(
-              child: ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
-                  colors: [Color(0xFF1565C0), Color(0xFFE65100)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ).createShader(bounds),
-                child: const Text(
-                  'R',
-                  style: TextStyle(
-                    fontSize: 44,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -1,
-                  ),
-                ),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/routo_logo.png',
+                width: 104,
+                height: 104,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
               ),
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Colors.white, Color(0xFFFFCC80)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ).createShader(bounds),
-          child: const Text(
-            'ROUTO',
-            style: TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: 8,
-            ),
+        const SizedBox(height: 18),
+        const Text(
+          'Routo',
+          style: TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            letterSpacing: 1.5,
+            shadows: [
+              Shadow(
+                color: Color(0x66000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
         ),
       ],
@@ -304,24 +295,24 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _buildTagline() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(50),
-        color: Colors.white.withOpacity(0.12),
-        border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.8),
+        color: Colors.white.withOpacity(0.10),
+        border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.0),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.bolt_rounded, color: Color(0xFFFFCC80), size: 16),
-          SizedBox(width: 6),
+          Icon(Icons.flash_on_rounded, color: Color(0xFFFFD54F), size: 15),
+          SizedBox(width: 5),
           Text(
             'Move Smart. Deliver Faster.',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.3,
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              letterSpacing: 0.4,
             ),
           ),
         ],
@@ -441,18 +432,11 @@ class _LoginScreenState extends State<LoginScreen>
               ],
             ),
             const SizedBox(height: 20),
-            // Social buttons
-            Row(
-              children: [
-                Expanded(
-                    child: _buildSocialButton(
-                        'G', 'Google', const Color(0xFFEA4335))),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: _buildSocialButton(
-                        'in', 'LinkedIn', const Color(0xFF0A66C2))),
-              ],
-            ),
+            // Google button
+            _buildGoogleButton(),
+            const SizedBox(height: 12),
+            // Phone button
+            _buildPhoneButton(),
           ],
         ),
       ),
@@ -565,37 +549,113 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildSocialButton(String letter, String label, Color color) {
+  Widget _buildGoogleButton() {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      elevation: 1.5,
+      shadowColor: Colors.black.withOpacity(0.08),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {},
+        splashColor: const Color(0xFFE8F0FE),
+        highlightColor: const Color(0xFFF0F4FF),
+        child: Container(
+          height: 54,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE0E4EA), width: 1.2),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Google logo circle (matching the reference image)
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F2),
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Image.asset(
+                  'assets/google.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stack) => _buildGoogleGText(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Continue with Google',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E293B),
+                  letterSpacing: 0.15,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Fallback widget if network image fails — draws "G" in Google colors.
+  Widget _buildGoogleGText() {
+    return RichText(
+      textAlign: TextAlign.center,
+      text: const TextSpan(
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+        children: [
+          TextSpan(text: 'G', style: TextStyle(color: Color(0xFF4285F4))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneButton() {
     return Container(
-      height: 46,
+      height: 52,
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1565C0), Color(0xFF7B1FA2)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1565C0).withOpacity(0.40),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           onTap: () {},
-          child: Row(
+          splashColor: Colors.white.withOpacity(0.15),
+          highlightColor: Colors.white.withOpacity(0.05),
+          child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              Icon(Icons.phone_android_rounded, color: Colors.white, size: 21),
+              SizedBox(width: 12),
               Text(
-                letter,
+                'Continue with Phone',
                 style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Color(0xFF4A5568),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: 0.1,
                 ),
               ),
             ],
