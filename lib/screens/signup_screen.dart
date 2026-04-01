@@ -1,43 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'splash_screen.dart';
-import 'signup_screen.dart';
 
-// void main() {
-//   runApp(const RoutoApp());
-// }
-
-class RoutoApp extends StatelessWidget {
-  const RoutoApp({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Routo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'SF Pro Display',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1565C0),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      home: const SplashScreen(),
-    );
-  }
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen>
+class _SignupScreenState extends State<SignupScreen>
     with TickerProviderStateMixin {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _mobileController = TextEditingController();
+  final _otpController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -110,12 +86,15 @@ class _LoginScreenState extends State<LoginScreen>
     _fadeController.dispose();
     _slideController.dispose();
     _pulseController.dispose();
+    _nameController.dispose();
     _emailController.dispose();
+    _mobileController.dispose();
+    _otpController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleSignup() async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
     setState(() => _isLoading = false);
@@ -167,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen>
                   right: 0,
                   bottom: 0,
                   child: CustomPaint(
-                    painter: RouteDotsPainter(),
+                    painter: SignupRouteDotsPainter(),
                   ),
                 ),
                 // Main content
@@ -196,10 +175,10 @@ class _LoginScreenState extends State<LoginScreen>
                             child: _buildTagline(),
                           ),
                           const SizedBox(height: 44),
-                          // Login card
+                          // Signup card
                           SlideTransition(
                             position: _cardSlide,
-                            child: _buildLoginCard(),
+                            child: _buildSignupCard(),
                           ),
                           const SizedBox(height: 24),
                           // Footer
@@ -211,6 +190,15 @@ class _LoginScreenState extends State<LoginScreen>
                         ],
                       ),
                     ),
+                  ),
+                ),
+                // Back Button
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
               ],
@@ -314,10 +302,10 @@ class _LoginScreenState extends State<LoginScreen>
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.bolt_rounded, color: Color(0xFFFFCC80), size: 16),
+          Icon(Icons.rocket_launch_rounded, color: Color(0xFFFFCC80), size: 16),
           SizedBox(width: 6),
           Text(
-            'Move Smart. Deliver Faster.',
+            'Join the Journey',
             style: TextStyle(
               color: Colors.white,
               fontSize: 13.5,
@@ -330,7 +318,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildLoginCard() {
+  Widget _buildSignupCard() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -356,7 +344,7 @@ class _LoginScreenState extends State<LoginScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Welcome back',
+              'Create Account',
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
@@ -366,7 +354,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             const SizedBox(height: 4),
             const Text(
-              'Sign in to your Routo account',
+              'Sign up to get started',
               style: TextStyle(
                 fontSize: 14,
                 color: Color(0xFF8A97A6),
@@ -374,7 +362,14 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
             const SizedBox(height: 28),
-            // Email field
+            
+            _buildTextField(
+              controller: _nameController,
+              hint: 'Full Name',
+              icon: Icons.person_outline,
+            ),
+            const SizedBox(height: 16),
+            
             _buildTextField(
               controller: _emailController,
               hint: 'Email address',
@@ -382,37 +377,32 @@ class _LoginScreenState extends State<LoginScreen>
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
-            // Password field
+            
+            _buildTextField(
+              controller: _mobileController,
+              hint: 'Mobile Number',
+              icon: Icons.phone_android_outlined,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 16),
+            
+            _buildTextField(
+              controller: _otpController,
+              hint: 'OTP Verification Code',
+              icon: Icons.message_outlined,
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            
             _buildTextField(
               controller: _passwordController,
               hint: 'Password',
               icon: Icons.lock_outline_rounded,
               isPassword: true,
             ),
-            const SizedBox(height: 12),
-            // Forgot password
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text(
-                  'Forgot Password?',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF1565C0),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Login button
-            _buildLoginButton(),
+            const SizedBox(height: 32),
+            
+            _buildSignupButton(),
             const SizedBox(height: 20),
             // Divider
             Row(
@@ -442,17 +432,9 @@ class _LoginScreenState extends State<LoginScreen>
               ],
             ),
             const SizedBox(height: 20),
-            // Social buttons
-            Row(
-              children: [
-                Expanded(
-                    child: _buildSocialButton(
-                        'G', 'Google', const Color(0xFFEA4335))),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: _buildSocialButton(
-                        'in', 'LinkedIn', const Color(0xFF0A66C2))),
-              ],
+            // Google Social button
+            _buildSocialButton(
+              'G', 'Google', const Color(0xFFEA4335),
             ),
           ],
         ),
@@ -513,9 +495,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildLoginButton() {
+  Widget _buildSignupButton() {
     return GestureDetector(
-      onTap: _isLoading ? null : _handleLogin,
+      onTap: _isLoading ? null : _handleSignup,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         height: 54,
@@ -548,7 +530,7 @@ class _LoginScreenState extends State<LoginScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Sign In',
+                      'Sign Up',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16.5,
@@ -611,22 +593,16 @@ class _LoginScreenState extends State<LoginScreen>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text(
-          "Don't have an account? ",
+          "Already have an account? ",
           style: TextStyle(
             color: Colors.white70,
             fontSize: 14,
           ),
         ),
         GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const SignupScreen(),
-              ),
-            );
-          },
+          onTap: () => Navigator.of(context).pop(),
           child: const Text(
-            'Sign Up',
+            'Sign In',
             style: TextStyle(
               color: Colors.white,
               fontSize: 14,
@@ -641,8 +617,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 }
 
-// Custom painter for subtle route dots decoration
-class RouteDotsPainter extends CustomPainter {
+class SignupRouteDotsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -655,23 +630,20 @@ class RouteDotsPainter extends CustomPainter {
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
 
-    // Draw subtle dotted path suggesting a delivery route
     const dotRadius = 3.0;
     final points = [
-      Offset(size.width * 0.12, size.height * 0.08),
-      Offset(size.width * 0.25, size.height * 0.15),
-      Offset(size.width * 0.15, size.height * 0.28),
-      Offset(size.width * 0.30, size.height * 0.35),
-      Offset(size.width * 0.88, size.height * 0.72),
-      Offset(size.width * 0.78, size.height * 0.82),
-      Offset(size.width * 0.92, size.height * 0.90),
+      Offset(size.width * 0.88, size.height * 0.08),
+      Offset(size.width * 0.75, size.height * 0.15),
+      Offset(size.width * 0.85, size.height * 0.28),
+      Offset(size.width * 0.70, size.height * 0.35),
+      Offset(size.width * 0.12, size.height * 0.72),
+      Offset(size.width * 0.22, size.height * 0.82),
+      Offset(size.width * 0.08, size.height * 0.90),
     ];
 
     for (int i = 0; i < points.length - 1; i++) {
       const dashLength = 6.0;
       const gapLength = 5.0;
-      final dashLength = 6.0;
-      final gapLength = 5.0;
       final dx = points[i + 1].dx - points[i].dx;
       final dy = points[i + 1].dy - points[i].dy;
       final dist = math.sqrt(dx * dx + dy * dy);
