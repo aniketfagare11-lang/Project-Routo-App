@@ -43,7 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+<<<<<<< HEAD
 ios/
 macos/
 linux/
 windows/
+=======
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a

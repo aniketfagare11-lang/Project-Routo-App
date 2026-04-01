@@ -48,8 +48,12 @@ class _LoginScreenState extends State<LoginScreen>
     _logoSlide = Tween<Offset>(
       begin: const Offset(0, -0.4),
       end: Offset.zero,
+<<<<<<< HEAD
     ).animate(
         CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+=======
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
 
     _cardSlide = Tween<Offset>(
       begin: const Offset(0, 0.5),
@@ -114,6 +118,7 @@ class _LoginScreenState extends State<LoginScreen>
             child: Stack(
               children: [
                 Positioned(
+<<<<<<< HEAD
                   top: -60,
                   right: -60,
                   child: _buildDecoCircle(
@@ -130,6 +135,18 @@ class _LoginScreenState extends State<LoginScreen>
                   right: -40,
                   child: _buildDecoCircle(
                       120, Colors.white.withValues(alpha: 0.04)),
+=======
+                  top: -60, right: -60,
+                  child: _buildDecoCircle(200, Colors.white.withValues(alpha: 0.04)),
+                ),
+                Positioned(
+                  top: 80, left: -80,
+                  child: _buildDecoCircle(160, Colors.white.withValues(alpha: 0.03)),
+                ),
+                Positioned(
+                  bottom: 100, right: -40,
+                  child: _buildDecoCircle(120, Colors.white.withValues(alpha: 0.04)),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
                 ),
                 const Positioned.fill(
                   child: CustomPaint(painter: RouteDotsPainter()),
@@ -147,6 +164,7 @@ class _LoginScreenState extends State<LoginScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const SizedBox(height: 48),
+<<<<<<< HEAD
                           SlideTransition(
                               position: _logoSlide, child: _buildLogoSection()),
                           const SizedBox(height: 12),
@@ -158,6 +176,15 @@ class _LoginScreenState extends State<LoginScreen>
                           const SizedBox(height: 24),
                           FadeTransition(
                               opacity: _fadeAnim, child: _buildFooter()),
+=======
+                          SlideTransition(position: _logoSlide, child: _buildLogoSection()),
+                          const SizedBox(height: 12),
+                          ScaleTransition(scale: _taglineScale, child: _buildTagline()),
+                          const SizedBox(height: 44),
+                          SlideTransition(position: _cardSlide, child: _buildLoginCard()),
+                          const SizedBox(height: 24),
+                          FadeTransition(opacity: _fadeAnim, child: _buildFooter()),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
                           const SizedBox(height: 32),
                         ],
                       ),
@@ -174,8 +201,12 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _buildDecoCircle(double size, Color color) {
     return Container(
+<<<<<<< HEAD
       width: size,
       height: size,
+=======
+      width: size, height: size,
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
@@ -185,15 +216,22 @@ class _LoginScreenState extends State<LoginScreen>
       children: [
         AnimatedBuilder(
           animation: _pulseAnim,
+<<<<<<< HEAD
           builder: (context, child) =>
               Transform.scale(scale: _pulseAnim.value, child: child),
           child: Container(
             width: 100,
             height: 100,
+=======
+          builder: (context, child) => Transform.scale(scale: _pulseAnim.value, child: child),
+          child: Container(
+            width: 100, height: 100,
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
               boxShadow: [
+<<<<<<< HEAD
                 BoxShadow(
                     color: Colors.black.withValues(alpha: 0.20),
                     blurRadius: 24,
@@ -207,6 +245,14 @@ class _LoginScreenState extends State<LoginScreen>
             child: ClipOval(
               child: Image.asset('assets/images/routo_logo.png',
                   fit: BoxFit.cover),
+=======
+                BoxShadow(color: Colors.black.withValues(alpha: 0.20), blurRadius: 24, offset: const Offset(0, 8)),
+                BoxShadow(color: const Color(0xFF1565C0).withValues(alpha: 0.25), blurRadius: 36, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: ClipOval(
+              child: Image.asset('assets/images/routo_logo.png', fit: BoxFit.cover),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
             ),
           ),
         ),
@@ -214,6 +260,7 @@ class _LoginScreenState extends State<LoginScreen>
         const Text(
           'ROUTO',
           style: TextStyle(
+<<<<<<< HEAD
             fontSize: 36,
             fontWeight: FontWeight.w900,
             color: Colors.white,
@@ -222,6 +269,10 @@ class _LoginScreenState extends State<LoginScreen>
               Shadow(
                   color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 2))
             ],
+=======
+            fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 4,
+            shadows: [Shadow(color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 2))],
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
           ),
         ),
       ],
@@ -234,8 +285,12 @@ class _LoginScreenState extends State<LoginScreen>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(50),
         color: Colors.white.withValues(alpha: 0.10),
+<<<<<<< HEAD
         border:
             Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1.0),
+=======
+        border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1.0),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -244,11 +299,15 @@ class _LoginScreenState extends State<LoginScreen>
           SizedBox(width: 5),
           Text(
             'Move Smart. Deliver Faster.',
+<<<<<<< HEAD
             style: TextStyle(
                 color: Colors.white70,
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
                 letterSpacing: 0.4),
+=======
+            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w400, letterSpacing: 0.4),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
           ),
         ],
       ),
@@ -261,6 +320,7 @@ class _LoginScreenState extends State<LoginScreen>
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
+<<<<<<< HEAD
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.18),
               blurRadius: 40,
@@ -269,6 +329,10 @@ class _LoginScreenState extends State<LoginScreen>
               color: const Color(0xFF1565C0).withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(-4, 0)),
+=======
+          BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 40, offset: const Offset(0, 16)),
+          BoxShadow(color: const Color(0xFF1565C0).withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(-4, 0)),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
         ],
       ),
       child: Padding(
@@ -277,6 +341,7 @@ class _LoginScreenState extends State<LoginScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Welcome back',
+<<<<<<< HEAD
                 style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
@@ -300,11 +365,22 @@ class _LoginScreenState extends State<LoginScreen>
                 hint: 'Password',
                 icon: Icons.lock_outline_rounded,
                 isPassword: true),
+=======
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Color(0xFF0D1B2A), letterSpacing: -0.5)),
+            const SizedBox(height: 4),
+            const Text('Sign in to your Routo account',
+              style: TextStyle(fontSize: 14, color: Color(0xFF8A97A6), fontWeight: FontWeight.w400)),
+            const SizedBox(height: 28),
+            _buildTextField(controller: _emailController, hint: 'Email address', icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+            const SizedBox(height: 16),
+            _buildTextField(controller: _passwordController, hint: 'Password', icon: Icons.lock_outline_rounded, isPassword: true),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () {},
+<<<<<<< HEAD
                 style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: Size.zero,
@@ -314,6 +390,11 @@ class _LoginScreenState extends State<LoginScreen>
                         fontSize: 13,
                         color: Color(0xFF1565C0),
                         fontWeight: FontWeight.w600)),
+=======
+                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                child: const Text('Forgot Password?',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF1565C0), fontWeight: FontWeight.w600)),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
               ),
             ),
             const SizedBox(height: 24),
@@ -321,6 +402,7 @@ class _LoginScreenState extends State<LoginScreen>
             const SizedBox(height: 20),
             Row(
               children: [
+<<<<<<< HEAD
                 Expanded(
                     child:
                         Container(height: 0.8, color: const Color(0xFFE8ECF0))),
@@ -333,6 +415,14 @@ class _LoginScreenState extends State<LoginScreen>
                 Expanded(
                     child:
                         Container(height: 0.8, color: const Color(0xFFE8ECF0))),
+=======
+                Expanded(child: Container(height: 0.8, color: const Color(0xFFE8ECF0))),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('or continue with', style: TextStyle(color: Color(0xFFB0BAC5), fontSize: 12.5)),
+                ),
+                Expanded(child: Container(height: 0.8, color: const Color(0xFFE8ECF0))),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
               ],
             ),
             const SizedBox(height: 20),
@@ -362,6 +452,7 @@ class _LoginScreenState extends State<LoginScreen>
         controller: controller,
         obscureText: isPassword ? _obscurePassword : false,
         keyboardType: keyboardType,
+<<<<<<< HEAD
         style: const TextStyle(
             fontSize: 15,
             color: Color(0xFF0D1B2A),
@@ -372,12 +463,19 @@ class _LoginScreenState extends State<LoginScreen>
               color: Color(0xFFB0BAC5),
               fontWeight: FontWeight.w400,
               fontSize: 14.5),
+=======
+        style: const TextStyle(fontSize: 15, color: Color(0xFF0D1B2A), fontWeight: FontWeight.w500),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFFB0BAC5), fontWeight: FontWeight.w400, fontSize: 14.5),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
           prefixIcon: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Icon(icon, color: const Color(0xFF8A97A6), size: 20),
           ),
           suffixIcon: isPassword
               ? IconButton(
+<<<<<<< HEAD
                   icon: Icon(
                       _obscurePassword
                           ? Icons.visibility_off_outlined
@@ -386,6 +484,11 @@ class _LoginScreenState extends State<LoginScreen>
                       size: 20),
                   onPressed: () =>
                       setState(() => _obscurePassword = !_obscurePassword),
+=======
+                  icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: const Color(0xFF8A97A6), size: 20),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
                 )
               : null,
           border: InputBorder.none,
@@ -405,6 +508,7 @@ class _LoginScreenState extends State<LoginScreen>
           borderRadius: BorderRadius.circular(16),
           gradient: const LinearGradient(
             colors: [Color(0xFF1565C0), Color(0xFFE65100)],
+<<<<<<< HEAD
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -413,10 +517,17 @@ class _LoginScreenState extends State<LoginScreen>
                 color: const Color(0xFF1565C0).withValues(alpha: 0.35),
                 blurRadius: 20,
                 offset: const Offset(0, 8)),
+=======
+            begin: Alignment.centerLeft, end: Alignment.centerRight,
+          ),
+          boxShadow: [
+            BoxShadow(color: const Color(0xFF1565C0).withValues(alpha: 0.35), blurRadius: 20, offset: const Offset(0, 8)),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
           ],
         ),
         child: Center(
           child: _isLoading
+<<<<<<< HEAD
               ? const SizedBox(
                   width: 22,
                   height: 22,
@@ -434,6 +545,16 @@ class _LoginScreenState extends State<LoginScreen>
                     SizedBox(width: 8),
                     Icon(Icons.arrow_forward_rounded,
                         color: Colors.white, size: 18),
+=======
+              ? const SizedBox(width: 22, height: 22,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+              : const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Sign In', style: TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
+                    SizedBox(width: 8),
+                    Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
                   ],
                 ),
         ),
@@ -464,28 +585,41 @@ class _LoginScreenState extends State<LoginScreen>
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
+<<<<<<< HEAD
                 width: 28,
                 height: 28,
                 decoration: const BoxDecoration(
                     color: Color(0xFFF2F2F2), shape: BoxShape.circle),
+=======
+                width: 28, height: 28,
+                decoration: const BoxDecoration(color: Color(0xFFF2F2F2), shape: BoxShape.circle),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
                 padding: const EdgeInsets.all(4),
                 child: Image.asset(
                   'assets/images/google.png',
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stack) => const Text('G',
+<<<<<<< HEAD
                       style: TextStyle(
                           color: Color(0xFF4285F4),
                           fontWeight: FontWeight.w800,
                           fontSize: 14)),
+=======
+                    style: TextStyle(color: Color(0xFF4285F4), fontWeight: FontWeight.w800, fontSize: 14)),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
                 ),
               ),
               const SizedBox(width: 12),
               const Text('Continue with Google',
+<<<<<<< HEAD
                   style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1E293B),
                       letterSpacing: 0.15)),
+=======
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1E293B), letterSpacing: 0.15)),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
             ],
           ),
         ),
@@ -500,6 +634,7 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: BorderRadius.circular(14),
         gradient: const LinearGradient(
           colors: [Color(0xFF1565C0), Color(0xFF7B1FA2)],
+<<<<<<< HEAD
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -508,6 +643,12 @@ class _LoginScreenState extends State<LoginScreen>
               color: const Color(0xFF1565C0).withValues(alpha: 0.40),
               blurRadius: 16,
               offset: const Offset(0, 6)),
+=======
+          begin: Alignment.centerLeft, end: Alignment.centerRight,
+        ),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF1565C0).withValues(alpha: 0.40), blurRadius: 16, offset: const Offset(0, 6)),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
         ],
       ),
       child: Material(
@@ -524,11 +665,15 @@ class _LoginScreenState extends State<LoginScreen>
               Icon(Icons.phone_android_rounded, color: Colors.white, size: 21),
               SizedBox(width: 12),
               Text('Continue with Phone',
+<<<<<<< HEAD
                   style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                       letterSpacing: 0.1)),
+=======
+                style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.1)),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
             ],
           ),
         ),
@@ -540,6 +685,7 @@ class _LoginScreenState extends State<LoginScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+<<<<<<< HEAD
         const Text("Don't have an account? ",
             style: TextStyle(color: Colors.white70, fontSize: 14)),
         GestureDetector(
@@ -552,6 +698,14 @@ class _LoginScreenState extends State<LoginScreen>
                   fontWeight: FontWeight.w700,
                   decoration: TextDecoration.underline,
                   decorationColor: Colors.white)),
+=======
+        const Text("Don't have an account? ", style: TextStyle(color: Colors.white70, fontSize: 14)),
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignupScreen())),
+          child: const Text('Sign Up',
+            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700,
+              decoration: TextDecoration.underline, decorationColor: Colors.white)),
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
         ),
       ],
     );
@@ -587,6 +741,11 @@ class RouteDotsPainter extends CustomPainter {
     for (int i = 0; i < points.length - 1; i++) {
       const dashLength = 6.0;
       const gapLength = 5.0;
+<<<<<<< HEAD
+=======
+      final dashLength = 6.0;
+      final gapLength = 5.0;
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
       final dx = points[i + 1].dx - points[i].dx;
       final dy = points[i + 1].dy - points[i].dy;
       final dist = math.sqrt(dx * dx + dy * dy);
@@ -595,8 +754,12 @@ class RouteDotsPainter extends CustomPainter {
       double traveled = 0;
       bool drawing = true;
       while (traveled < dist) {
+<<<<<<< HEAD
         final segEnd =
             math.min(traveled + (drawing ? dashLength : gapLength), dist);
+=======
+        final segEnd = math.min(traveled + (drawing ? dashLength : gapLength), dist);
+>>>>>>> 7b34663b5bc0b48cd95a1693aa8eac7c58dfd37a
         if (drawing) {
           canvas.drawLine(
             Offset(points[i].dx + nx * traveled, points[i].dy + ny * traveled),
