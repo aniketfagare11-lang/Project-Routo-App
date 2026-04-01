@@ -475,6 +475,8 @@ class RouteDotsPainter extends CustomPainter {
     for (int i = 0; i < points.length - 1; i++) {
       const dashLength = 6.0;
       const gapLength = 5.0;
+      final dashLength = 6.0;
+      final gapLength = 5.0;
       final dx = points[i + 1].dx - points[i].dx;
       final dy = points[i + 1].dy - points[i].dy;
       final dist = math.sqrt(dx * dx + dy * dy);
