@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'signup_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _SignupScreenState extends State<SignupScreen>
     with TickerProviderStateMixin {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _mobileController = TextEditingController();
+  final _otpController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -46,13 +48,11 @@ class _LoginScreenState extends State<LoginScreen>
     _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
 
     _logoSlide = Tween<Offset>(
-      begin: const Offset(0, -0.4),
-      end: Offset.zero,
+      begin: const Offset(0, -0.4), end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
 
     _cardSlide = Tween<Offset>(
-      begin: const Offset(0, 0.5),
-      end: Offset.zero,
+      begin: const Offset(0, 0.5), end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _slideController,
       curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
@@ -78,12 +78,15 @@ class _LoginScreenState extends State<LoginScreen>
     _fadeController.dispose();
     _slideController.dispose();
     _pulseController.dispose();
+    _nameController.dispose();
     _emailController.dispose();
+    _mobileController.dispose();
+    _otpController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleSignup() async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
     setState(() => _isLoading = false);
@@ -97,16 +100,16 @@ class _LoginScreenState extends State<LoginScreen>
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
               colors: [
-                Color(0xFF0A3880),
+                Color(0xFF0D47A1),
                 Color(0xFF1565C0),
-                Color(0xFF5B3FBF),
-                Color(0xFFD84315),
-                Color(0xFFFF8F00),
+                Color(0xFF1976D2),
+                Color(0xFFE65100),
+                Color(0xFFFF6F00),
               ],
-              stops: [0.0, 0.28, 0.52, 0.78, 1.0],
+              stops: [0.0, 0.25, 0.45, 0.78, 1.0],
             ),
           ),
           child: SafeArea(
@@ -125,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen>
                   child: _buildDecoCircle(120, Colors.white.withValues(alpha: 0.04)),
                 ),
                 const Positioned.fill(
-                  child: CustomPaint(painter: RouteDotsPainter()),
+                  child: CustomPaint(painter: SignupRouteDotsPainter()),
                 ),
                 SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
@@ -144,13 +147,20 @@ class _LoginScreenState extends State<LoginScreen>
                           const SizedBox(height: 12),
                           ScaleTransition(scale: _taglineScale, child: _buildTagline()),
                           const SizedBox(height: 44),
-                          SlideTransition(position: _cardSlide, child: _buildLoginCard()),
+                          SlideTransition(position: _cardSlide, child: _buildSignupCard()),
                           const SizedBox(height: 24),
                           FadeTransition(opacity: _fadeAnim, child: _buildFooter()),
                           const SizedBox(height: 32),
                         ],
                       ),
                     ),
+                  ),
+                ),
+                Positioned(
+                  top: 16, left: 16,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
               ],
@@ -193,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen>
         const Text(
           'ROUTO',
           style: TextStyle(
-            fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 4,
+            fontSize: 30, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 4,
             shadows: [Shadow(color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 2))],
           ),
         ),
@@ -212,18 +222,16 @@ class _LoginScreenState extends State<LoginScreen>
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.flash_on_rounded, color: Color(0xFFFFD54F), size: 15),
+          Icon(Icons.rocket_launch_rounded, color: Color(0xFFFFD54F), size: 14),
           SizedBox(width: 5),
-          Text(
-            'Move Smart. Deliver Faster.',
-            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w400, letterSpacing: 0.4),
-          ),
+          Text('Join the Routo Journey',
+            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w400, letterSpacing: 0.3)),
         ],
       ),
     );
   }
 
-  Widget _buildLoginCard() {
+  Widget _buildSignupCard() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -238,27 +246,23 @@ class _LoginScreenState extends State<LoginScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Welcome back',
+            const Text('Create Account',
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Color(0xFF0D1B2A), letterSpacing: -0.5)),
             const SizedBox(height: 4),
-            const Text('Sign in to your Routo account',
+            const Text('Sign up to get started',
               style: TextStyle(fontSize: 14, color: Color(0xFF8A97A6), fontWeight: FontWeight.w400)),
             const SizedBox(height: 28),
+            _buildTextField(controller: _nameController, hint: 'Full Name', icon: Icons.person_outline),
+            const SizedBox(height: 16),
             _buildTextField(controller: _emailController, hint: 'Email address', icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 16),
+            _buildTextField(controller: _mobileController, hint: 'Mobile Number', icon: Icons.phone_android_outlined, keyboardType: TextInputType.phone),
+            const SizedBox(height: 16),
+            _buildTextField(controller: _otpController, hint: 'OTP Verification Code', icon: Icons.message_outlined, keyboardType: TextInputType.number),
+            const SizedBox(height: 16),
             _buildTextField(controller: _passwordController, hint: 'Password', icon: Icons.lock_outline_rounded, isPassword: true),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                child: const Text('Forgot Password?',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1565C0), fontWeight: FontWeight.w600)),
-              ),
-            ),
-            const SizedBox(height: 24),
-            _buildLoginButton(),
+            const SizedBox(height: 32),
+            _buildSignupButton(),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -272,8 +276,6 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             const SizedBox(height: 20),
             _buildGoogleButton(),
-            const SizedBox(height: 12),
-            _buildPhoneButton(),
           ],
         ),
       ),
@@ -319,9 +321,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildLoginButton() {
+  Widget _buildSignupButton() {
     return GestureDetector(
-      onTap: _isLoading ? null : _handleLogin,
+      onTap: _isLoading ? null : _handleSignup,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         height: 54,
@@ -342,7 +344,7 @@ class _LoginScreenState extends State<LoginScreen>
               : const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Sign In', style: TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
+                    Text('Sign Up', style: TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
                     SizedBox(width: 8),
                     Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
                   ],
@@ -364,7 +366,7 @@ class _LoginScreenState extends State<LoginScreen>
         splashColor: const Color(0xFFE8F0FE),
         highlightColor: const Color(0xFFF0F4FF),
         child: Container(
-          height: 54,
+          height: 52,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
@@ -395,49 +397,14 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildPhoneButton() {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1565C0), Color(0xFF7B1FA2)],
-          begin: Alignment.centerLeft, end: Alignment.centerRight,
-        ),
-        boxShadow: [
-          BoxShadow(color: const Color(0xFF1565C0).withValues(alpha: 0.40), blurRadius: 16, offset: const Offset(0, 6)),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {},
-          splashColor: Colors.white.withValues(alpha: 0.15),
-          highlightColor: Colors.white.withValues(alpha: 0.05),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.phone_android_rounded, color: Colors.white, size: 21),
-              SizedBox(width: 12),
-              Text('Continue with Phone',
-                style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.1)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildFooter() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Don't have an account? ", style: TextStyle(color: Colors.white70, fontSize: 14)),
+        const Text('Already have an account? ', style: TextStyle(color: Colors.white70, fontSize: 14)),
         GestureDetector(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignupScreen())),
-          child: const Text('Sign Up',
+          onTap: () => Navigator.of(context).pop(),
+          child: const Text('Sign In',
             style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700,
               decoration: TextDecoration.underline, decorationColor: Colors.white)),
         ),
@@ -446,8 +413,8 @@ class _LoginScreenState extends State<LoginScreen>
   }
 }
 
-class RouteDotsPainter extends CustomPainter {
-  const RouteDotsPainter();
+class SignupRouteDotsPainter extends CustomPainter {
+  const SignupRouteDotsPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -463,13 +430,13 @@ class RouteDotsPainter extends CustomPainter {
 
     const dotRadius = 3.0;
     final points = [
-      Offset(size.width * 0.12, size.height * 0.08),
-      Offset(size.width * 0.25, size.height * 0.15),
-      Offset(size.width * 0.15, size.height * 0.28),
-      Offset(size.width * 0.30, size.height * 0.35),
-      Offset(size.width * 0.88, size.height * 0.72),
-      Offset(size.width * 0.78, size.height * 0.82),
-      Offset(size.width * 0.92, size.height * 0.90),
+      Offset(size.width * 0.88, size.height * 0.08),
+      Offset(size.width * 0.75, size.height * 0.15),
+      Offset(size.width * 0.85, size.height * 0.28),
+      Offset(size.width * 0.70, size.height * 0.35),
+      Offset(size.width * 0.12, size.height * 0.72),
+      Offset(size.width * 0.22, size.height * 0.82),
+      Offset(size.width * 0.08, size.height * 0.90),
     ];
 
     for (int i = 0; i < points.length - 1; i++) {
