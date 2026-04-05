@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'splash_screen.dart';
 import 'signup_screen.dart';
+import 'home_screen.dart';
 
 // void main() {
 //   runApp(const RoutoApp());
@@ -118,7 +119,12 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _handleLogin() async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
     setState(() => _isLoading = false);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      (route) => false,
+    );
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -97,7 +98,12 @@ class _SignupScreenState extends State<SignupScreen>
   Future<void> _handleSignup() async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
     setState(() => _isLoading = false);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      (route) => false,
+    );
   }
 
   @override
