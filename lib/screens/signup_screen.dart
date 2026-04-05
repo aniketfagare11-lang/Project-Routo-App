@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -87,15 +88,113 @@ class _SignupScreenState extends State<SignupScreen>
     super.dispose();
   }
 
-  Future<void> _handleSignup() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+  // ─── Show error SnackBar ─────────────────────────────────────────
+  void _showError(String message) {
     if (!mounted) return;
-    setState(() => _isLoading = false);
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (route) => false,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message, style: const TextStyle(fontSize: 14))),
+          ],
+        ),
+        backgroundColor: const Color(0xFFD32F2F),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      ),
     );
+  }
+
+  // ─── Show success SnackBar ─────────────────────────────────────
+  void _showSuccess(String name) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Welcome, $name! Account created.', style: const TextStyle(fontSize: 14))),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2E7D32),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  // ─── Firebase Signup ─────────────────────────────────────────────
+  Future<void> _handleSignup() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Input validation
+    if (name.isEmpty) {
+      _showError('Please enter your full name.');
+      return;
+    }
+    if (email.isEmpty) {
+      _showError('Please enter your email address.');
+      return;
+    }
+    if (password.isEmpty) {
+      _showError('Please enter a password.');
+      return;
+    }
+    if (password.length < 6) {
+      _showError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      // Update display name
+      await credential.user?.updateDisplayName(name);
+      if (!mounted) return;
+      _showSuccess(name);
+      // Small delay so user sees the success message
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = 'An account with this email already exists. Please sign in.';
+          break;
+        case 'invalid-email':
+          message = 'The email address is not valid.';
+          break;
+        case 'weak-password':
+          message = 'Password is too weak. Use at least 6 characters.';
+          break;
+        case 'operation-not-allowed':
+          message = 'Email/password sign-up is not enabled. Contact support.';
+          break;
+        default:
+          message = e.message ?? 'Sign up failed. Please try again.';
+      }
+      _showError(message);
+    } catch (e) {
+      _showError('An unexpected error occurred. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override

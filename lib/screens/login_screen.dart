@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
 
@@ -84,15 +85,79 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+  // ─── Show error SnackBar ─────────────────────────────────────────
+  void _showError(String message) {
     if (!mounted) return;
-    setState(() => _isLoading = false);
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (route) => false,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message, style: const TextStyle(fontSize: 14))),
+          ],
+        ),
+        backgroundColor: const Color(0xFFD32F2F),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      ),
     );
+  }
+
+  // ─── Firebase Login ───────────────────────────────────────────────
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Input validation
+    if (email.isEmpty || password.isEmpty) {
+      _showError('Please enter both email and password.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'No account found with this email. Please sign up.';
+          break;
+        case 'wrong-password':
+          message = 'Incorrect password. Please try again.';
+          break;
+        case 'invalid-email':
+          message = 'The email address is not valid.';
+          break;
+        case 'user-disabled':
+          message = 'This account has been disabled. Contact support.';
+          break;
+        case 'too-many-requests':
+          message = 'Too many attempts. Please wait and try again.';
+          break;
+        case 'invalid-credential':
+          message = 'Invalid email or password. Please check and try again.';
+          break;
+        default:
+          message = e.message ?? 'Login failed. Please try again.';
+      }
+      _showError(message);
+    } catch (e) {
+      _showError('An unexpected error occurred. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
