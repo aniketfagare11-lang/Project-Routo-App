@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'login_screen.dart';
+
+// ─────────────────────────────────────────────
+//  USAGE:
+//  1. Place your Routo logo at assets/images/routo_logo.png
+//  2. In pubspec.yaml add:
+//       flutter:
+//         assets:
+//           - assets/images/routo_logo.png
+//  3. Set SplashScreen() as your initial route.
+//  4. Replace `_navigateToNext()` body with your Navigator push.
+// ─────────────────────────────────────────────
 
 // ─── Brand Colors extracted from Routo logo ───
 class RoutoColors {
-  static const navyDeep = Color(0xFF060E2E);
-  static const navyMid = Color(0xFF0A1F5C);
-  static const navyLight = Color(0xFF142B73);
-  static const orange = Color(0xFFE8500A);
-  static const orangeLight = Color(0xFFFF7A3D);
+  static const navyDeep = Color(0xFF060E2E); // darkest navy (background edge)
+  static const navyMid = Color(0xFF0A1F5C); // core background
+  static const navyLight = Color(0xFF142B73); // radial center highlight
+  static const orange = Color(0xFFE8500A); // primary brand orange
+  static const orangeLight =
+      Color(0xFFFF7A3D); // lighter orange (tagline accent)
   static const white = Color(0xFFFFFFFF);
 }
 
@@ -29,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
   // ── Animations ──
   late final Animation<double> _logoScale;
   late final Animation<double> _logoFade;
-  late final Animation<double> _nameSlide;
+  late final Animation<double> _nameSlide; // 0→1 mapped to offset
   late final Animation<double> _nameFade;
   late final Animation<double> _taglineFade;
   late final Animation<double> _progressVal;
@@ -49,9 +62,8 @@ class _SplashScreenState extends State<SplashScreen>
     );
     _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _logoCtrl,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-      ),
+          parent: _logoCtrl,
+          curve: const Interval(0.0, 0.5, curve: Curves.easeOut)),
     );
 
     // Text stagger: name + tagline
@@ -61,21 +73,18 @@ class _SplashScreenState extends State<SplashScreen>
     );
     _nameSlide = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(
-        parent: _textCtrl,
-        curve: const Interval(0.0, 0.7, curve: Curves.easeOutCubic),
-      ),
+          parent: _textCtrl,
+          curve: const Interval(0.0, 0.7, curve: Curves.easeOutCubic)),
     );
     _nameFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _textCtrl,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
+          parent: _textCtrl,
+          curve: const Interval(0.0, 0.6, curve: Curves.easeOut)),
     );
     _taglineFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _textCtrl,
-        curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
-      ),
+          parent: _textCtrl,
+          curve: const Interval(0.4, 1.0, curve: Curves.easeOut)),
     );
 
     // Progress bar
@@ -110,13 +119,14 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 300));
     _progressCtrl.forward();
 
-    // Navigate to LoginScreen after splash completes
+    // Navigate after splash completes
     await Future.delayed(const Duration(milliseconds: 1800));
     _navigateToNext();
   }
 
   void _navigateToNext() {
     if (!mounted) return;
+    // ── Replace with your actual next screen ──
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => const LoginScreen(),
@@ -147,13 +157,20 @@ class _SplashScreenState extends State<SplashScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
+          // ── 1. Background radial gradient ──
           _buildBackground(),
+
+          // ── 2. Subtle speed-line decoration ──
           _buildSpeedLines(),
+
+          // ── 3. Main centered content ──
           SafeArea(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Spacer(flex: 3),
+
+                // ── Glow bloom behind logo ──
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -162,16 +179,32 @@ class _SplashScreenState extends State<SplashScreen>
                     _buildLogo(),
                   ],
                 ),
+
                 const SizedBox(height: 28),
+
+                // ── App name ──
                 _buildAppName(),
+
                 const SizedBox(height: 4),
+
+                // ── Category subtitle ──
                 _buildCategory(),
+
                 const SizedBox(height: 20),
+
+                // ── Orange divider with diamond ──
                 _buildDivider(),
+
                 const SizedBox(height: 16),
+
+                // ── Tagline ──
                 _buildTagline(),
+
                 const Spacer(flex: 3),
+
+                // ── Loading bar ──
                 _buildProgressBar(),
+
                 const SizedBox(height: 48),
               ],
             ),
@@ -181,6 +214,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  // ─── Background ───────────────────────────────────────────────
   Widget _buildBackground() {
     return Container(
       decoration: const BoxDecoration(
@@ -198,12 +232,14 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  // ─── Speed lines ──────────────────────────────────────────────
   Widget _buildSpeedLines() {
     return Positioned.fill(
       child: CustomPaint(painter: _SpeedLinesPainter()),
     );
   }
 
+  // ─── Glow bloom ───────────────────────────────────────────────
   Widget _buildGlowBloom() {
     return AnimatedBuilder(
       animation: _glowPulse,
@@ -214,8 +250,8 @@ class _SplashScreenState extends State<SplashScreen>
           shape: BoxShape.circle,
           gradient: RadialGradient(
             colors: [
-              RoutoColors.orange.withValues(alpha: 0.20 * _glowPulse.value),
-              RoutoColors.orange.withValues(alpha: 0.06 * _glowPulse.value),
+              RoutoColors.orange.withOpacity(0.20 * _glowPulse.value),
+              RoutoColors.orange.withOpacity(0.06 * _glowPulse.value),
               Colors.transparent,
             ],
             stops: const [0.0, 0.45, 1.0],
@@ -225,6 +261,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  // ─── Decorative rings ─────────────────────────────────────────
   Widget _buildRings() {
     return SizedBox(
       width: 240,
@@ -259,6 +296,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  // ─── Logo ─────────────────────────────────────────────────────
   Widget _buildLogo() {
     return AnimatedBuilder(
       animation: _logoCtrl,
@@ -270,36 +308,35 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       ),
       child: Container(
-        width: 100,
-        height: 100,
+        width: 152,
+        height: 152,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.20),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-              spreadRadius: 0,
+              color: RoutoColors.orange.withValues(alpha: 0.40),
+              blurRadius: 36,
+              offset: const Offset(0, 10),
+              spreadRadius: 2,
             ),
             BoxShadow(
-              color: RoutoColors.orange.withValues(alpha: 0.25),
-              blurRadius: 36,
+              color: RoutoColors.navyDeep.withValues(alpha: 0.55),
+              blurRadius: 20,
               offset: const Offset(0, 4),
-              spreadRadius: 0,
             ),
           ],
         ),
         child: ClipOval(
           child: Image.asset(
             'assets/images/routo_logo.png',
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
           ),
         ),
       ),
     );
   }
 
+  // ─── App name ─────────────────────────────────────────────────
   Widget _buildAppName() {
     return AnimatedBuilder(
       animation: _textCtrl,
@@ -319,6 +356,8 @@ class _SplashScreenState extends State<SplashScreen>
         child: const Text(
           'ROUTO',
           style: TextStyle(
+            fontFamily:
+                'Barlow', // Add Barlow to pubspec fonts, or use a system bold
             fontSize: 48,
             fontWeight: FontWeight.w900,
             color: RoutoColors.white,
@@ -330,6 +369,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  // ─── Category ─────────────────────────────────────────────────
   Widget _buildCategory() {
     return AnimatedBuilder(
       animation: _nameFade,
@@ -349,11 +389,11 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  // ─── Divider ──────────────────────────────────────────────────
   Widget _buildDivider() {
     return AnimatedBuilder(
       animation: _taglineFade,
-      builder: (_, child) =>
-          Opacity(opacity: _taglineFade.value, child: child),
+      builder: (_, child) => Opacity(opacity: _taglineFade.value, child: child),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -370,7 +410,7 @@ class _SplashScreenState extends State<SplashScreen>
                   BoxShadow(
                     color: RoutoColors.orange.withValues(alpha: 0.7),
                     blurRadius: 6,
-                  ),
+                  )
                 ],
               ),
             ),
@@ -388,17 +428,17 @@ class _SplashScreenState extends State<SplashScreen>
         color: RoutoColors.orange.withValues(alpha: 0.5),
       );
 
+  // ─── Tagline ──────────────────────────────────────────────────
   Widget _buildTagline() {
     return AnimatedBuilder(
       animation: _taglineFade,
-      builder: (_, child) =>
-          Opacity(opacity: _taglineFade.value, child: child),
+      builder: (_, child) => Opacity(opacity: _taglineFade.value, child: child),
       child: RichText(
         text: const TextSpan(
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: Color(0xB3FFFFFF),
+            color: Color(0xB3FFFFFF), // 70% white
             letterSpacing: 0.4,
           ),
           children: [
@@ -416,39 +456,43 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  // ─── Progress bar ─────────────────────────────────────────────
   Widget _buildProgressBar() {
-    return Column(
-      children: [
-        AnimatedBuilder(
-          animation: _progressVal,
-          builder: (_, __) {
-            return SizedBox(
-              width: 72,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: _progressVal.value,
-                  minHeight: 2,
-                  backgroundColor: Colors.white.withValues(alpha: 0.10),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    RoutoColors.orange,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Column(
+        children: [
+          AnimatedBuilder(
+            animation: _progressVal,
+            builder: (_, __) {
+              return SizedBox(
+                width: 72,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: _progressVal.value,
+                    minHeight: 2,
+                    backgroundColor: Colors.white.withValues(alpha: 0.10),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      RoutoColors.orange,
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'LOADING',
-          style: TextStyle(
-            fontSize: 9,
-            letterSpacing: 3,
-            color: Color(0x40FFFFFF),
-            fontWeight: FontWeight.w700,
+              );
+            },
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          const Text(
+            'LOADING',
+            style: TextStyle(
+              fontSize: 9,
+              letterSpacing: 3,
+              color: Color(0x40FFFFFF),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -459,9 +503,10 @@ class _SpeedLinesPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = Paint()..strokeCap = StrokeCap.round;
 
+    // Left-side speed streaks (mirroring logo motion lines)
     void streak(double y, double w, double opacity) {
       p
-        ..color = const Color(0xFFE8500A).withValues(alpha: opacity)
+        ..color = const Color(0xFFE8500A).withOpacity(opacity)
         ..strokeWidth = 0.8;
       canvas.drawLine(Offset(0, y), Offset(w, y), p);
     }
@@ -469,9 +514,12 @@ class _SpeedLinesPainter extends CustomPainter {
     streak(size.height * 0.32, size.width * 0.18, 0.08);
     streak(size.height * 0.325, size.width * 0.12, 0.05);
     streak(size.height * 0.330, size.width * 0.15, 0.04);
+
+    // Right-side symmetry
     streak(size.height * 0.60, size.width * 0.16, 0.06);
     streak(size.height * 0.606, size.width * 0.10, 0.04);
 
+    // Subtle dot grid (top-left and bottom-right corners)
     p.style = PaintingStyle.fill;
     for (int r = 0; r < 3; r++) {
       for (int c = 0; c < 3; c++) {
@@ -492,3 +540,5 @@ class _SpeedLinesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter _) => false;
 }
+
+// End of file
