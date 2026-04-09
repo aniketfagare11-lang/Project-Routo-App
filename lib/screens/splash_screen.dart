@@ -319,7 +319,7 @@ class _SplashScreenState extends State<SplashScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: RoutoColors.orange.withOpacity(0.12),
+              color: RoutoColors.orange.withValues(alpha: 0.12),
               width: 0.8,
             ),
           ),
@@ -346,13 +346,13 @@ class _SplashScreenState extends State<SplashScreen>
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: RoutoColors.orange.withOpacity(0.40),
+              color: RoutoColors.orange.withValues(alpha: 0.40),
               blurRadius: 36,
               offset: const Offset(0, 10),
               spreadRadius: 2,
             ),
             BoxShadow(
-              color: RoutoColors.navyDeep.withOpacity(0.55),
+              color: RoutoColors.navyDeep.withValues(alpha: 0.55),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -440,7 +440,7 @@ class _SplashScreenState extends State<SplashScreen>
                 color: RoutoColors.orange,
                 boxShadow: [
                   BoxShadow(
-                    color: RoutoColors.orange.withOpacity(0.7),
+                    color: RoutoColors.orange.withValues(alpha: 0.7),
                     blurRadius: 6,
                   )
                 ],
@@ -457,7 +457,7 @@ class _SplashScreenState extends State<SplashScreen>
   Widget _divLine() => Container(
         width: 40,
         height: 0.8,
-        color: RoutoColors.orange.withOpacity(0.5),
+        color: RoutoColors.orange.withValues(alpha: 0.5),
       );
 
   // ─── Tagline ──────────────────────────────────────────────────
@@ -504,7 +504,7 @@ class _SplashScreenState extends State<SplashScreen>
                   child: LinearProgressIndicator(
                     value: _progressVal.value,
                     minHeight: 2,
-                    backgroundColor: Colors.white.withOpacity(0.10),
+                    backgroundColor: Colors.white.withValues(alpha: 0.10),
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       RoutoColors.orange,
                     ),
@@ -558,12 +558,12 @@ class _SpeedLinesPainter extends CustomPainter {
         canvas.drawCircle(
           Offset(20.0 + c * 22, 90.0 + r * 22),
           1.0,
-          p..color = Colors.white.withOpacity(0.04),
+          p..color = Colors.white.withValues(alpha: 0.04),
         );
         canvas.drawCircle(
           Offset(size.width - 20.0 - c * 22, size.height - 90.0 - r * 22),
           1.0,
-          p..color = Colors.white.withOpacity(0.04),
+          p..color = Colors.white.withValues(alpha: 0.04),
         );
       }
     }

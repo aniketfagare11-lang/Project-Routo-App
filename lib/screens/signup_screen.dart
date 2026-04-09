@@ -133,17 +133,17 @@ class _SignupScreenState extends State<SignupScreen>
                 Positioned(
                   top: -60,
                   right: -60,
-                  child: _buildDecoCircle(200, Colors.white.withOpacity(0.04)),
+                  child: _buildDecoCircle(200, Colors.white.withValues(alpha: 0.04)),
                 ),
                 Positioned(
                   top: 80,
                   left: -80,
-                  child: _buildDecoCircle(160, Colors.white.withOpacity(0.03)),
+                  child: _buildDecoCircle(160, Colors.white.withValues(alpha: 0.03)),
                 ),
                 Positioned(
                   bottom: 100,
                   right: -40,
-                  child: _buildDecoCircle(120, Colors.white.withOpacity(0.04)),
+                  child: _buildDecoCircle(120, Colors.white.withValues(alpha: 0.04)),
                 ),
                 // Animated route path decoration
                 Positioned(
@@ -243,13 +243,13 @@ class _SignupScreenState extends State<SignupScreen>
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 24,
                   offset: const Offset(0, 8),
                   spreadRadius: 2,
                 ),
                 BoxShadow(
-                  color: const Color(0xFFFF6F00).withOpacity(0.3),
+                  color: const Color(0xFFFF6F00).withValues(alpha: 0.3),
                   blurRadius: 32,
                   offset: const Offset(0, 4),
                   spreadRadius: 4,
@@ -302,8 +302,8 @@ class _SignupScreenState extends State<SignupScreen>
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(50),
-        color: Colors.white.withOpacity(0.12),
-        border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.8),
+        color: Colors.white.withValues(alpha: 0.12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 0.8),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -331,13 +331,13 @@ class _SignupScreenState extends State<SignupScreen>
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 40,
             offset: const Offset(0, 16),
             spreadRadius: 0,
           ),
           BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.08),
+            color: const Color(0xFF1565C0).withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(-4, 0),
             spreadRadius: 0,
@@ -516,7 +516,7 @@ class _SignupScreenState extends State<SignupScreen>
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1565C0).withOpacity(0.35),
+              color: const Color(0xFF1565C0).withValues(alpha: 0.35),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -627,11 +627,11 @@ class SignupRouteDotsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.06)
+      ..color = Colors.white.withValues(alpha: 0.06)
       ..style = PaintingStyle.fill;
 
     final linePaint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = Colors.white.withValues(alpha: 0.05)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
