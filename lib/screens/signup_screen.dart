@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -18,6 +21,9 @@ class _SignupScreenState extends State<SignupScreen>
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isSendingOtp = false;
+  String? _verificationId;
+  dynamic _webConfirmationResult;
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -95,15 +101,178 @@ class _SignupScreenState extends State<SignupScreen>
     super.dispose();
   }
 
-  Future<void> _handleSignup() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+  void _showError(String message) {
     if (!mounted) return;
-    setState(() => _isLoading = false);
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (route) => false,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message, style: const TextStyle(fontSize: 14))),
+          ],
+        ),
+        backgroundColor: const Color(0xFFD32F2F),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      ),
     );
+  }
+
+  void _showSuccess(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  Future<void> _sendOtp() async {
+    String phone = _mobileController.text.trim();
+    if (phone.isEmpty) {
+      _showError('Please enter a mobile number first.');
+      return;
+    }
+
+    if (!phone.startsWith('+')) {
+      phone = '+91$phone';
+    }
+
+    setState(() => _isSendingOtp = true);
+    try {
+      if (kIsWeb) {
+        RecaptchaVerifier verifier = RecaptchaVerifier(
+          auth: FirebaseAuthPlatform.instance,
+          container: 'recaptcha-container',
+          size: RecaptchaVerifierSize.compact,
+          theme: RecaptchaVerifierTheme.light,
+        );
+        _webConfirmationResult = await FirebaseAuth.instance.signInWithPhoneNumber(phone, verifier);
+        _showSuccess('OTP Sent to $phone');
+      } else {
+        await FirebaseAuth.instance.verifyPhoneNumber(
+          phoneNumber: phone,
+          verificationCompleted: (PhoneAuthCredential credential) {
+            if (credential.smsCode != null) {
+              _otpController.text = credential.smsCode!;
+            }
+          },
+          verificationFailed: (FirebaseAuthException e) {
+            _showError(e.message ?? 'Verification failed');
+          },
+          codeSent: (String verificationId, int? resendToken) {
+            if (mounted) {
+              setState(() => _verificationId = verificationId);
+              _showSuccess('OTP Sent to $phone');
+            }
+          },
+          codeAutoRetrievalTimeout: (String verificationId) {},
+        );
+      }
+    } catch (e) {
+      _showError('Failed to send OTP. Try again.');
+    } finally {
+      if (mounted) setState(() => _isSendingOtp = false);
+    }
+  }
+
+  Future<void> _handleSignup() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final name = _nameController.text.trim();
+
+    final otp = _otpController.text.trim();
+
+    if (email.isEmpty || password.isEmpty || name.isEmpty) {
+      _showError('Please fill in all required email/password fields.');
+      return;
+    }
+
+    if ((_verificationId != null || _webConfirmationResult != null) && otp.isEmpty) {
+      _showError('Please enter the OTP sent to your mobile.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      UserCredential userCred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      final user = userCred.user;
+      if (user != null) {
+        await user.updateDisplayName(name);
+        
+        if (otp.isNotEmpty && (_verificationId != null || _webConfirmationResult != null)) {
+          try {
+            PhoneAuthCredential credential;
+            if (kIsWeb && _webConfirmationResult != null) {
+              credential = PhoneAuthProvider.credential(
+                verificationId: _webConfirmationResult.verificationId,
+                smsCode: otp,
+              );
+            } else {
+              credential = PhoneAuthProvider.credential(
+                verificationId: _verificationId!,
+                smsCode: otp,
+              );
+            }
+            await user.linkWithCredential(credential);
+          } on FirebaseAuthException catch (e) {
+            if (e.code == 'invalid-verification-code') {
+              _showError('Invalid OTP');
+            } else {
+              _showError(e.message ?? 'Phone verification failed.');
+            }
+          }
+        }
+      }
+      
+      _showSuccess('Signup Successful');
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = 'User already exists. Please login.';
+          break;
+        case 'invalid-email':
+          message = 'The email address is not valid.';
+          break;
+        case 'weak-password':
+          message = 'Please enter a stronger password.';
+          break;
+        case 'operation-not-allowed':
+          message = 'Email/password accounts are not enabled.';
+          break;
+        case 'too-many-requests':
+          message = 'Too many requests. Please try again later.';
+          break;
+        case 'invalid-verification-code':
+          message = 'Invalid OTP';
+          break;
+        default:
+          message = e.message ?? 'Signup failed. Please try again.';
+      }
+      _showError(message);
+    } catch (e) {
+      _showError('An unexpected error occurred. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -231,13 +400,11 @@ class _SignupScreenState extends State<SignupScreen>
       children: [
         AnimatedBuilder(
           animation: _pulseAnim,
-          builder: (context, child) => Transform.scale(
-            scale: _pulseAnim.value,
-            child: child,
-          ),
+          builder: (context, child) =>
+              Transform.scale(scale: _pulseAnim.value, child: child),
           child: Container(
-            width: 88,
-            height: 88,
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
@@ -256,41 +423,24 @@ class _SignupScreenState extends State<SignupScreen>
                 ),
               ],
             ),
-            child: Center(
-              child: ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
-                  colors: [Color(0xFF1565C0), Color(0xFFE65100)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ).createShader(bounds),
-                child: const Text(
-                  'R',
-                  style: TextStyle(
-                    fontSize: 44,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -1,
-                  ),
-                ),
-              ),
+            child: ClipOval(
+              child: Image.asset('assets/images/routo_logo.png',
+                  fit: BoxFit.cover),
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Colors.white, Color(0xFFFFCC80)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ).createShader(bounds),
-          child: const Text(
-            'ROUTO',
-            style: TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: 8,
-            ),
+        const SizedBox(height: 14),
+        const Text(
+          'ROUTO',
+          style: TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            letterSpacing: 4,
+            shadows: [
+              Shadow(
+                  color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 2))
+            ],
           ),
         ),
       ],
@@ -389,6 +539,12 @@ class _SignupScreenState extends State<SignupScreen>
               hint: 'Mobile Number',
               icon: Icons.phone_android_outlined,
               keyboardType: TextInputType.phone,
+              suffix: TextButton(
+                onPressed: _isSendingOtp ? null : _sendOtp,
+                child: _isSendingOtp 
+                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                   : const Text('Send OTP', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
             ),
             const SizedBox(height: 16),
             
@@ -439,9 +595,7 @@ class _SignupScreenState extends State<SignupScreen>
             ),
             const SizedBox(height: 20),
             // Google Social button
-            _buildSocialButton(
-              'G', 'Google', const Color(0xFFEA4335),
-            ),
+            _buildGoogleButton(),
           ],
         ),
       ),
@@ -454,6 +608,7 @@ class _SignupScreenState extends State<SignupScreen>
     required IconData icon,
     bool isPassword = false,
     TextInputType? keyboardType,
+    Widget? suffix,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -481,19 +636,20 @@ class _SignupScreenState extends State<SignupScreen>
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Icon(icon, color: const Color(0xFF8A97A6), size: 20),
           ),
-          suffixIcon: isPassword
-              ? IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: const Color(0xFF8A97A6),
-                    size: 20,
-                  ),
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                )
-              : null,
+          suffixIcon: suffix ?? 
+              (isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: const Color(0xFF8A97A6),
+                        size: 20,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                    )
+                  : null),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
@@ -554,39 +710,51 @@ class _SignupScreenState extends State<SignupScreen>
     );
   }
 
-  Widget _buildSocialButton(String letter, String label, Color color) {
-    return Container(
-      height: 46,
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {},
+  Widget _buildGoogleButton() {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      elevation: 1.5,
+      shadowColor: Colors.black.withValues(alpha: 0.08),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {},
+        splashColor: const Color(0xFFE8F0FE),
+        highlightColor: const Color(0xFFF0F4FF),
+        child: Container(
+          height: 54,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE0E4EA), width: 1.2),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                letter,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
+              Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                    color: Color(0xFFF2F2F2), shape: BoxShape.circle),
+                padding: const EdgeInsets.all(4),
+                child: Image.asset(
+                  'assets/images/google.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stack) => const Text('G',
+                      style: TextStyle(
+                          color: Color(0xFF4285F4),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14)),
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Color(0xFF4A5568),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              const SizedBox(width: 12),
+              const Text('Continue with Google',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B),
+                      letterSpacing: 0.15)),
             ],
           ),
         ),

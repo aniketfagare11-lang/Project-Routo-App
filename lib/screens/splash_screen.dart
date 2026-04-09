@@ -13,29 +13,6 @@ import 'login_screen.dart';
 //  4. Replace `_navigateToNext()` body with your Navigator push.
 // ─────────────────────────────────────────────
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-  ));
-  runApp(const RoutoApp());
-}
-
-class RoutoApp extends StatelessWidget {
-  const RoutoApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Routo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true),
-      home: const SplashScreen(),
-    );
-  }
-}
-
 // ─── Brand Colors extracted from Routo logo ───
 class RoutoColors {
   static const navyDeep = Color(0xFF060E2E); // darkest navy (background edge)
@@ -88,15 +65,6 @@ class _SplashScreenState extends State<SplashScreen>
           parent: _logoCtrl,
           curve: const Interval(0.0, 0.5, curve: Curves.easeOut)),
     );
-    _logoCtrl.forward();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    });
 
     // Text stagger: name + tagline
     _textCtrl = AnimationController(
@@ -161,7 +129,7 @@ class _SplashScreenState extends State<SplashScreen>
     // ── Replace with your actual next screen ──
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const _PlaceholderHome(),
+        pageBuilder: (_, __, ___) => const LoginScreen(),
         transitionDuration: const Duration(milliseconds: 600),
         transitionsBuilder: (_, anim, __, child) {
           return FadeTransition(
@@ -573,39 +541,4 @@ class _SpeedLinesPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter _) => false;
 }
 
-// ─── Placeholder next screen ─────────────────────────────────────
-class _PlaceholderHome extends StatefulWidget {
-  const _PlaceholderHome();
-
-  @override
-  State<_PlaceholderHome> createState() => _PlaceholderHomeState();
-}
-
-class _PlaceholderHomeState extends State<_PlaceholderHome> {
-  @override
-  void initState() {
-    super.initState();
-
-    // Direct Login redirect
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text(
-          "Loading...",
-          style: TextStyle(fontSize: 18),
-        ),
-      ),
-    );
-  }
-}
+// End of file
