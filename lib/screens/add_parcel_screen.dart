@@ -4,39 +4,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  DESIGN TOKENS — Premium Dark Theme (Synced with HomeScreen)
+//  DESIGN TOKENS — Synced with HomeScreen & Login dark palette
 // ─────────────────────────────────────────────────────────────────────────────
 class _C {
-  // Background
-  static const bg0 = Color(0xFF0B0F1A); // top
-  static const bg1 = Color(0xFF121A2F); // middle
-  static const bg2 = Color(0xFF05070D); // bottom
+  static const bg1   = Color(0xFF020617);
 
-  // Glass surfaces
-  static const glass = Color(0x0DFFFFFF); // rgba(255,255,255,0.05)
-  static const glassBorder = Color(0x1AFFFFFF); // rgba(255,255,255,0.10)
-  static const glassDeep = Color(0x08FFFFFF); // even more subtle fill
+  static const glass       = Color(0x14FFFFFF);
+  static const glassBorder = Color(0x20FFFFFF);
+  static const surfaceEl   = Color(0xFF131F38);
 
-  // Accents
-  static const purple = Color(0xFF7C5CFF);
-  static const blue = Color(0xFF4DA1FF);
-  static const orange = Color(0xFFFF8A3D);
+  static const accentA = Color(0xFF3B82F6); // blue
+  static const accentB = Color(0xFFF97316); // orange
+  static const accentC = Color(0xFF8B5CF6); // purple
 
-  // Semantic / status
   static const green = Color(0xFF10B981);
-  static const red = Color(0xFFEF4444);
-  static const cyan = Color(0xFF5CF0FC);
+  static const red   = Color(0xFFEF4444);
+  static const cyan  = Color(0xFF06B6D4);
 
-  // Text
   static const textPrimary = Color(0xFFF1F5F9);
-  static const textSec = Color(0xFF94A3B8); // ~70% white-ish gray
+  static const textSec     = Color(0xFF64748B);
 
-  // Glow helpers
-  static Color purpleGlow(double a) => purple.withValues(alpha: a);
-  static Color blueGlow(double a) => blue.withValues(alpha: a);
-  static Color orangeGlow(double a) => orange.withValues(alpha: a);
+  static Color blueGlow(double a)   => accentA.withValues(alpha: a);
+  static Color orangeGlow(double a) => accentB.withValues(alpha: a);
+  static Color purpleGlow(double a) => accentC.withValues(alpha: a);
+  static Color greenGlow(double a)  => green.withValues(alpha: a);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  PARCEL TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+const _kParcelTypes = [
+  {'label': 'Package',     'emoji': '📦', 'color': 0xFF3B82F6},
+  {'label': 'Fragile',     'emoji': '🫙', 'color': 0xFFF97316},
+  {'label': 'Documents',   'emoji': '📄', 'color': 0xFF06B6D4},
+  {'label': 'Electronics', 'emoji': '💻', 'color': 0xFF8B5CF6},
+  {'label': 'Other',       'emoji': '✉️', 'color': 0xFF10B981},
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ADD PARCEL SCREEN
+// ─────────────────────────────────────────────────────────────────────────────
 class AddParcelScreen extends StatefulWidget {
   const AddParcelScreen({super.key});
 
@@ -46,100 +53,77 @@ class AddParcelScreen extends StatefulWidget {
 
 class _AddParcelScreenState extends State<AddParcelScreen>
     with TickerProviderStateMixin {
+
   // ── Controllers ──────────────────────────────────────────────────────────
-  final _pickupController = TextEditingController();
-  final _dropoffController = TextEditingController();
-  final _dateController = TextEditingController();
-  final _weightController = TextEditingController();
-  final _priceController = TextEditingController();
+  final _originCtrl    = TextEditingController();
+  final _destCtrl      = TextEditingController();
+  final _dateCtrl      = TextEditingController();
+  final _weightCtrl    = TextEditingController();
+  final _priceCtrl     = TextEditingController();
+  final _notesCtrl     = TextEditingController();
 
-  // ── Focus nodes ───────────────────────────────────────────────────────────
-  final _pickupFocus = FocusNode();
-  final _dropoffFocus = FocusNode();
-  final _weightFocus = FocusNode();
-  final _priceFocus = FocusNode();
+  final _originFocus   = FocusNode();
+  final _destFocus     = FocusNode();
+  final _weightFocus   = FocusNode();
+  final _priceFocus    = FocusNode();
 
-  // ── Validation ────────────────────────────────────────────────────────────
-  String? _pickupError;
-  String? _dropoffError;
+  // ── State ─────────────────────────────────────────────────────────────────
+  String? _originError;
+  String? _destError;
   String? _dateError;
   String? _weightError;
-
-  // ── UI state ──────────────────────────────────────────────────────────────
-  bool _isLoading = false;
-  bool _isSuccess = false;
-  bool _isFetchingLocation = false;
-  int _selectedTypeIndex = 0;
+  bool _isLoading        = false;
+  bool _isSuccess        = false;
+  bool _isFetchingLoc    = false;
   bool _isPriceSuggested = true;
+  int  _selectedType     = 0;
 
-  // ── Animation controllers ─────────────────────────────────────────────────
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late AnimationController _successController;
-  late AnimationController _buttonController;
-  late AnimationController _bgOrbitCtrl;
+  // ── Animations ────────────────────────────────────────────────────────────
+  late AnimationController _fadeCtrl;
+  late AnimationController _slideCtrl;
+  late AnimationController _successCtrl;
+  late AnimationController _btnCtrl;
+  late AnimationController _bgCtrl;
 
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
-  late Animation<double> _successAnim;
-  late Animation<double> _buttonScaleAnim;
-  late Animation<double> _bgOrbitAnim;
+  late Animation<double>  _fadeAnim;
+  late Animation<Offset>  _slideAnim;
+  late Animation<double>  _successAnim;
+  late Animation<double>  _btnScale;
+  late Animation<double>  _bgAnim;
 
-  // ── Parcel types ──────────────────────────────────────────────────────────
-  final _parcelTypes = <Map<String, Object>>[
-    {'label': 'Box', 'icon': Icons.inventory_2_rounded, 'color': _C.blue},
-    {'label': 'Fragile', 'icon': Icons.wine_bar_rounded, 'color': _C.orange},
-    {'label': 'Document', 'icon': Icons.description_rounded, 'color': _C.cyan},
-    {'label': 'Electronics', 'icon': Icons.devices_rounded, 'color': _C.purple},
-    {'label': 'Other', 'icon': Icons.more_horiz_rounded, 'color': _C.green},
-  ];
-
-  // ─────────────────────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
 
-    _fadeController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 800));
-    _slideController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
-    _successController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    _buttonController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 120));
-    _bgOrbitCtrl =
-        AnimationController(vsync: this, duration: const Duration(seconds: 16))
-          ..repeat();
+    _fadeCtrl    = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _slideCtrl   = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+    _successCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
+    _btnCtrl     = AnimationController(vsync: this, duration: const Duration(milliseconds: 120));
+    _bgCtrl      = AnimationController(vsync: this, duration: const Duration(seconds: 16))..repeat();
 
-    _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
-        .animate(CurvedAnimation(
-            parent: _slideController, curve: Curves.easeOutCubic));
-    _successAnim =
-        CurvedAnimation(parent: _successController, curve: Curves.elasticOut);
-    _buttonScaleAnim = Tween<double>(begin: 1.0, end: 0.94).animate(
-        CurvedAnimation(parent: _buttonController, curve: Curves.easeInOut));
-    _bgOrbitAnim = CurvedAnimation(parent: _bgOrbitCtrl, curve: Curves.linear);
+    _fadeAnim    = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    _slideAnim   = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
+    _successAnim = CurvedAnimation(parent: _successCtrl, curve: Curves.elasticOut);
+    _btnScale    = Tween<double>(begin: 1.0, end: 0.96)
+        .animate(CurvedAnimation(parent: _btnCtrl, curve: Curves.easeInOut));
+    _bgAnim      = CurvedAnimation(parent: _bgCtrl, curve: Curves.linear);
 
-    _fadeController.forward();
-    _slideController.forward();
+    _fadeCtrl.forward();
+    _slideCtrl.forward();
 
-    _weightController.addListener(_onWeightChanged);
-    for (final fn in [_pickupFocus, _dropoffFocus, _weightFocus, _priceFocus]) {
+    _weightCtrl.addListener(_onWeightChanged);
+    for (final fn in [_originFocus, _destFocus, _weightFocus, _priceFocus]) {
       fn.addListener(() => setState(() {}));
     }
   }
 
   void _onWeightChanged() {
-    final weight = double.tryParse(_weightController.text);
-    if (weight != null) {
-      final suggested = weight < 2
-          ? '100'
-          : weight <= 5
-              ? '200'
-              : '300';
-      if (_priceController.text.isEmpty || _isPriceSuggested) {
-        _priceController.text = suggested;
+    final w = double.tryParse(_weightCtrl.text);
+    if (w != null) {
+      final suggested = w < 2 ? '₹100' : w <= 5 ? '₹200' : '₹350';
+      if (_priceCtrl.text.isEmpty || _isPriceSuggested) {
+        _priceCtrl.text = suggested;
         _isPriceSuggested = true;
       }
     }
@@ -147,55 +131,49 @@ class _AddParcelScreenState extends State<AddParcelScreen>
 
   @override
   void dispose() {
-    _pickupController.dispose();
-    _dropoffController.dispose();
-    _dateController.dispose();
-    _weightController.dispose();
-    _priceController.dispose();
-    _pickupFocus.dispose();
-    _dropoffFocus.dispose();
-    _weightFocus.dispose();
-    _priceFocus.dispose();
-    _fadeController.dispose();
-    _slideController.dispose();
-    _successController.dispose();
-    _buttonController.dispose();
-    _bgOrbitCtrl.dispose();
+    for (final c in [_originCtrl, _destCtrl, _dateCtrl, _weightCtrl, _priceCtrl, _notesCtrl]) {
+      c.dispose();
+    }
+    for (final f in [_originFocus, _destFocus, _weightFocus, _priceFocus]) {
+      f.dispose();
+    }
+    for (final a in [_fadeCtrl, _slideCtrl, _successCtrl, _btnCtrl, _bgCtrl]) {
+      a.dispose();
+    }
     super.dispose();
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
-  Future<void> _fetchCurrentLocation() async {
-    setState(() => _isFetchingLocation = true);
+  Future<void> _fetchLocation() async {
+    setState(() => _isFetchingLoc = true);
     HapticFeedback.lightImpact();
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
       setState(() {
-        _isFetchingLocation = false;
-        _pickupController.text = 'Chennai, Tamil Nadu';
-        _pickupError = null;
+        _isFetchingLoc = false;
+        _originCtrl.text = 'Pune, Maharashtra';
+        _originError = null;
       });
     }
   }
 
-  Future<void> _selectDate() async {
+  Future<void> _pickDate() async {
     HapticFeedback.selectionClick();
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) => Theme(
+      builder: (ctx, child) => Theme(
         data: ThemeData.dark().copyWith(
           colorScheme: const ColorScheme.dark(
-            primary: _C.purple,
+            primary: _C.accentA,
             onPrimary: Colors.white,
-            surface: Color(0xFF121A2F),
+            surface: Color(0xFF0F1C35),
             onSurface: Colors.white,
           ),
           dialogTheme: DialogThemeData(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           ),
         ),
         child: child!,
@@ -203,8 +181,8 @@ class _AddParcelScreenState extends State<AddParcelScreen>
     );
     if (picked != null) {
       setState(() {
-        _dateController.text =
-            "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+        _dateCtrl.text =
+            '${picked.day.toString().padLeft(2, '0')} / ${picked.month.toString().padLeft(2, '0')} / ${picked.year}';
         _dateError = null;
       });
     }
@@ -212,42 +190,26 @@ class _AddParcelScreenState extends State<AddParcelScreen>
 
   bool _validate() {
     setState(() {
-      _pickupError = _pickupController.text.trim().isEmpty
-          ? 'Pickup location is required'
-          : null;
-      _dropoffError = _dropoffController.text.trim().isEmpty
-          ? 'Drop-off location is required'
-          : null;
-      _dateError = _dateController.text.trim().isEmpty
-          ? 'Please select a pickup date'
-          : null;
-      _weightError =
-          _weightController.text.trim().isEmpty ? 'Enter parcel weight' : null;
+      _originError = _originCtrl.text.trim().isEmpty ? 'Please enter a collection point' : null;
+      _destError   = _destCtrl.text.trim().isEmpty   ? 'Please enter a delivery address' : null;
+      _dateError   = _dateCtrl.text.trim().isEmpty   ? 'Select a collection date' : null;
+      _weightError = _weightCtrl.text.trim().isEmpty ? 'Enter parcel weight in kg' : null;
     });
-    return _pickupError == null &&
-        _dropoffError == null &&
-        _dateError == null &&
-        _weightError == null;
+    return _originError == null && _destError == null && _dateError == null && _weightError == null;
   }
 
-  Future<void> _handleSubmit() async {
+  Future<void> _submit() async {
     HapticFeedback.mediumImpact();
     if (!_validate()) return;
-
-    await _buttonController.forward();
-    await _buttonController.reverse();
-
+    await _btnCtrl.forward();
+    await _btnCtrl.reverse();
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
-
     if (mounted) {
-      setState(() {
-        _isLoading = false;
-        _isSuccess = true;
-      });
-      _successController.forward();
+      setState(() { _isLoading = false; _isSuccess = true; });
+      _successCtrl.forward();
       HapticFeedback.heavyImpact();
-      await Future.delayed(const Duration(milliseconds: 1800));
+      await Future.delayed(const Duration(milliseconds: 2000));
       if (mounted) Navigator.of(context).pop();
     }
   }
@@ -258,7 +220,7 @@ class _AddParcelScreenState extends State<AddParcelScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _C.bg2,
+      backgroundColor: _C.bg1,
       extendBodyBehindAppBar: true,
       appBar: _buildAppBar(),
       body: Stack(children: [
@@ -270,18 +232,24 @@ class _AddParcelScreenState extends State<AddParcelScreen>
             child: SafeArea(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 48),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
+                    _buildHeroHeader(),
+                    const SizedBox(height: 24),
                     _buildLocationCard(),
                     const SizedBox(height: 16),
                     _buildParcelTypeCard(),
                     const SizedBox(height: 16),
-                    _buildParcelDetailsCard(),
+                    _buildDetailsCard(),
+                    const SizedBox(height: 16),
+                    _buildNotesCard(),
                     const SizedBox(height: 32),
                     _buildSubmitButton(),
+                    const SizedBox(height: 16),
+                    _buildDisclaimer(),
                   ],
                 ),
               ),
@@ -309,187 +277,171 @@ class _AddParcelScreenState extends State<AddParcelScreen>
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: _C.glassBorder),
           ),
-          child: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white, size: 16),
-        ),
-      ),
-      title: ShaderMask(
-        blendMode: BlendMode.srcIn,
-        shaderCallback: (bounds) => const LinearGradient(
-          colors: [_C.purple, _C.blue],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ).createShader(bounds),
-        child: const Text(
-          'Add Parcel',
-          style: TextStyle(
-              fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+          child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
         ),
       ),
     );
   }
 
-  // ── Animated Background ───────────────────────────────────────────────────
+  // ── Background ────────────────────────────────────────────────────────────
   Widget _buildBackground() {
     return AnimatedBuilder(
-      animation: _bgOrbitAnim,
+      animation: _bgAnim,
       builder: (_, __) {
-        final t = _bgOrbitAnim.value * 2 * math.pi;
+        final t = _bgAnim.value * 2 * math.pi;
         return Stack(children: [
-          // Base tri-stop gradient — dark navy → deep blue → black
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [_C.bg0, _C.bg1, _C.bg2],
-                stops: [0.0, 0.5, 1.0],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0F172A), Color(0xFF020617), Color(0xFF0C1220)],
+                stops: [0.0, 0.55, 1.0],
               ),
             ),
           ),
-          // Radial noise texture overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(-0.6, -0.7),
-                radius: 1.2,
-                colors: [
-                  _C.purple.withValues(alpha: 0.07),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-          // Orbiting orbs
-          _orb(
-            x: 0.12 + 0.07 * math.cos(t),
-            y: 0.10 + 0.05 * math.sin(t),
-            size: 260,
-            color: _C.purpleGlow(0.10),
-          ),
-          _orb(
-            x: 0.82 + 0.05 * math.cos(t + 2.0),
-            y: 0.32 + 0.06 * math.sin(t + 2.0),
-            size: 200,
-            color: _C.blueGlow(0.08),
-          ),
-          _orb(
-            x: 0.45 + 0.06 * math.cos(t + 4.1),
-            y: 0.70 + 0.04 * math.sin(t + 4.1),
-            size: 170,
-            color: _C.orangeGlow(0.07),
-          ),
+          _orb(x: 0.12 + 0.07 * math.cos(t),       y: 0.10 + 0.05 * math.sin(t),       size: 260, color: _C.blueGlow(0.09)),
+          _orb(x: 0.82 + 0.05 * math.cos(t + 2.0), y: 0.32 + 0.06 * math.sin(t + 2.0), size: 200, color: _C.orangeGlow(0.07)),
+          _orb(x: 0.45 + 0.06 * math.cos(t + 4.1), y: 0.72 + 0.04 * math.sin(t + 4.1), size: 170, color: _C.purpleGlow(0.06)),
         ]);
       },
     );
   }
 
-  Widget _orb({
-    required double x,
-    required double y,
-    required double size,
-    required Color color,
-  }) {
-    return LayoutBuilder(builder: (ctx, c) {
-      return Positioned(
-        left: c.maxWidth * x - size / 2,
-        top: c.maxHeight * y - size / 2,
+  Widget _orb({required double x, required double y, required double size, required Color color}) {
+    return Positioned.fill(
+      child: Align(
+        alignment: Alignment(x * 2 - 1, y * 2 - 1),
         child: Container(
-          width: size,
-          height: size,
+          width: size, height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(colors: [color, Colors.transparent]),
           ),
         ),
-      );
-    });
+      ),
+    );
+  }
+
+  // ── Hero Header ───────────────────────────────────────────────────────────
+  Widget _buildHeroHeader() {
+    return Row(children: [
+      Container(
+        width: 52, height: 52,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [_C.accentA, _C.accentB],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [BoxShadow(color: _C.blueGlow(0.4), blurRadius: 16, offset: const Offset(0, 6))],
+        ),
+        child: const Center(child: Text('📦', style: TextStyle(fontSize: 24))),
+      ),
+      const SizedBox(width: 16),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ShaderMask(
+          shaderCallback: (b) => const LinearGradient(
+            colors: [_C.textPrimary, Color(0xFF93C5FD)],
+          ).createShader(b),
+          child: const Text('Book a Delivery',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.3)),
+        ),
+        const SizedBox(height: 3),
+        const Text('Fill in the details to send your parcel',
+            style: TextStyle(fontSize: 13, color: _C.textSec, fontWeight: FontWeight.w400)),
+      ]),
+    ]);
   }
 
   // ── Location Card ─────────────────────────────────────────────────────────
   Widget _buildLocationCard() {
-    return _glassCard(
-      accentColor: _C.blue,
+    return _GlassCard(
+      accentColor: _C.accentA,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _cardHeader(Icons.route_rounded, 'Location Details', _C.blue),
+          const _SectionHeader(icon: Icons.local_shipping_rounded, title: 'Pickup & Delivery', color: _C.accentA),
           const SizedBox(height: 20),
-          _buildGlowInput(
-            controller: _pickupController,
-            focusNode: _pickupFocus,
-            label: 'Pickup Location',
-            hint: 'E.g., Pune, Maharashtra',
+          // Pickup Address
+          _buildInput(
+            controller: _originCtrl,
+            focusNode: _originFocus,
+            label: 'Pickup Address',
+            hint: 'Where should we pick up the parcel?',
             icon: Icons.my_location_rounded,
-            focusColor: _C.blue,
-            error: _pickupError,
-            suffix: _isFetchingLocation
+            focusColor: _C.accentA,
+            error: _originError,
+            suffix: _isFetchingLoc
                 ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: _C.blue),
+                    width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: _C.accentA),
                   )
                 : GestureDetector(
-                    onTap: _fetchCurrentLocation,
+                    onTap: _fetchLocation,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        gradient:
-                            const LinearGradient(colors: [_C.purple, _C.blue]),
+                        gradient: const LinearGradient(colors: [_C.accentA, _C.accentC]),
                         borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                              color: _C.purpleGlow(0.35),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3)),
-                        ],
+                        boxShadow: [BoxShadow(color: _C.blueGlow(0.4), blurRadius: 10, offset: const Offset(0, 3))],
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.gps_fixed_rounded,
-                              color: Colors.white, size: 12),
-                          SizedBox(width: 4),
-                          Text('GPS',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700)),
-                        ],
-                      ),
+                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.gps_fixed_rounded, color: Colors.white, size: 12),
+                        SizedBox(width: 4),
+                        Text('GPS', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                      ]),
                     ),
                   ),
           ),
-          const SizedBox(height: 14),
-          // Dashed connector
+
+          // Dashed connector line
           Padding(
-            padding: const EdgeInsets.only(left: 18),
+            padding: const EdgeInsets.only(left: 20, top: 8, bottom: 8),
             child: Column(
-              children: List.generate(
-                  3,
-                  (_) => Container(
-                        width: 2,
-                        height: 5,
-                        margin: const EdgeInsets.only(bottom: 3),
-                        decoration: BoxDecoration(
-                          color: _C.textSec.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      )),
+              children: List.generate(3, (_) => Container(
+                width: 2, height: 5,
+                margin: const EdgeInsets.only(bottom: 3),
+                decoration: BoxDecoration(
+                  color: _C.textSec.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              )),
             ),
           ),
-          const SizedBox(height: 8),
-          _buildGlowInput(
-            controller: _dropoffController,
-            focusNode: _dropoffFocus,
-            label: 'Drop-off Location',
-            hint: 'E.g., Mumbai, Maharashtra',
+
+          // Delivery Address
+          _buildInput(
+            controller: _destCtrl,
+            focusNode: _destFocus,
+            label: 'Delivery Address',
+            hint: 'Where should it be delivered?',
             icon: Icons.location_on_rounded,
-            focusColor: _C.orange,
-            error: _dropoffError,
+            focusColor: _C.accentB,
+            error: _destError,
           ),
+
+          // Distance estimate pill
+          if (_originCtrl.text.isNotEmpty && _destCtrl.text.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: _C.accentA.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _C.accentA.withValues(alpha: 0.2)),
+              ),
+              child: const Row(children: [
+                Icon(Icons.straighten_rounded, color: _C.accentA, size: 14),
+                SizedBox(width: 8),
+                Text('Estimated delivery: ~2h 30m  ·  149 km',
+                    style: TextStyle(color: _C.textSec, fontSize: 12, fontWeight: FontWeight.w500)),
+                Spacer(),
+                Text('₹120 base', style: TextStyle(color: _C.accentB, fontSize: 12, fontWeight: FontWeight.w700)),
+              ]),
+            ),
+          ],
         ],
       ),
     );
@@ -497,86 +449,56 @@ class _AddParcelScreenState extends State<AddParcelScreen>
 
   // ── Parcel Type Card ──────────────────────────────────────────────────────
   Widget _buildParcelTypeCard() {
-    return _glassCard(
-      accentColor: _C.cyan,
+    return _GlassCard(
+      accentColor: _C.accentC,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _cardHeader(Icons.category_rounded, 'Parcel Type', _C.cyan),
+          const _SectionHeader(icon: Icons.category_rounded, title: 'Parcel Type', color: _C.accentC),
           const SizedBox(height: 18),
           SizedBox(
-            height: 92,
+            height: 96,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
-              itemCount: _parcelTypes.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, i) {
-                final type = _parcelTypes[i];
-                final selected = _selectedTypeIndex == i;
-                final color = type['color'] as Color;
-                // Selected always glows purple
-                final glowColor = selected ? _C.purple : color;
-
+              itemCount: _kParcelTypes.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (_, i) {
+                final t = _kParcelTypes[i];
+                final color   = Color(t['color'] as int);
+                final selected = _selectedType == i;
                 return GestureDetector(
                   onTap: () {
                     HapticFeedback.selectionClick();
-                    setState(() => _selectedTypeIndex = i);
+                    setState(() => _selectedType = i);
                   },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOutCubic,
-                    width: 74,
+                    width: 76,
                     decoration: BoxDecoration(
-                      color: selected
-                          ? _C.purple.withValues(alpha: 0.15)
-                          : _C.glassDeep,
+                      color: selected ? color.withValues(alpha: 0.15) : _C.glass,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: selected
-                            ? _C.purple.withValues(alpha: 0.75)
-                            : _C.glassBorder,
+                        color: selected ? color.withValues(alpha: 0.7) : _C.glassBorder,
                         width: selected ? 1.5 : 1.0,
                       ),
                       boxShadow: selected
-                          ? [
-                              BoxShadow(
-                                  color: _C.purpleGlow(0.40),
-                                  blurRadius: 20,
-                                  spreadRadius: 0),
-                            ]
+                          ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 16, spreadRadius: 0)]
                           : [],
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? _C.purple.withValues(alpha: 0.22)
-                                : Colors.transparent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            type['icon'] as IconData,
-                            color: selected ? _C.purple : _C.textSec,
-                            size: 22,
-                          ),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Text(t['emoji'] as String, style: const TextStyle(fontSize: 22)),
+                      const SizedBox(height: 6),
+                      Text(
+                        t['label'] as String,
+                        style: TextStyle(
+                          color: selected ? color : _C.textSec,
+                          fontSize: 10.5,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          type['label'] as String,
-                          style: TextStyle(
-                            color: selected ? _C.purple : _C.textSec,
-                            fontSize: 11,
-                            fontWeight:
-                                selected ? FontWeight.w700 : FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ]),
                   ),
                 );
               },
@@ -588,138 +510,149 @@ class _AddParcelScreenState extends State<AddParcelScreen>
   }
 
   // ── Parcel Details Card ───────────────────────────────────────────────────
-  Widget _buildParcelDetailsCard() {
-    return _glassCard(
-      accentColor: _C.purple,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _cardHeader(Icons.inventory_2_rounded, 'Parcel Details', _C.purple),
-          const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildGlowInput(
-                  controller: _weightController,
-                  focusNode: _weightFocus,
-                  label: 'Weight (kg)',
-                  hint: '2.5',
-                  icon: Icons.monitor_weight_outlined,
-                  focusColor: _C.purple,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  error: _weightError,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildGlowInput(
-                      controller: _priceController,
-                      focusNode: _priceFocus,
-                      label: 'Price (₹)',
-                      hint: 'Auto',
-                      icon: Icons.currency_rupee_rounded,
-                      focusColor: _C.green,
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => _isPriceSuggested = false,
-                    ),
-                    if (_isPriceSuggested && _priceController.text.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 5, left: 4),
-                        child: Row(children: [
-                          const Icon(Icons.auto_awesome_rounded,
-                              size: 10, color: _C.green),
-                          const SizedBox(width: 3),
-                          Text('Suggested',
-                              style: TextStyle(
-                                color: _C.green.withValues(alpha: 0.85),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                              )),
-                        ]),
-                      ),
-                  ],
-                ),
-              ),
-            ],
+  Widget _buildDetailsCard() {
+    return _GlassCard(
+      accentColor: _C.accentB,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const _SectionHeader(icon: Icons.inventory_2_rounded, title: 'Parcel Details', color: _C.accentB),
+        const SizedBox(height: 20),
+
+        // Weight + Price row
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: _buildInput(
+              controller: _weightCtrl,
+              focusNode: _weightFocus,
+              label: 'Weight (kg)',
+              hint: '0.0',
+              icon: Icons.monitor_weight_outlined,
+              focusColor: _C.accentA,
+              error: _weightError,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
           ),
-          const SizedBox(height: 14),
-          _buildGlowInput(
-            controller: _dateController,
-            label: 'Pickup Date',
-            hint: 'Select a date',
-            icon: Icons.calendar_month_rounded,
-            focusColor: _C.cyan,
-            readOnly: true,
-            onTap: _selectDate,
-            error: _dateError,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _buildInput(
+                controller: _priceCtrl,
+                focusNode: _priceFocus,
+                label: 'Price (₹)',
+                hint: 'Auto-calculated',
+                icon: Icons.currency_rupee_rounded,
+                focusColor: _C.green,
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() => _isPriceSuggested = false),
+              ),
+              if (_isPriceSuggested && _priceCtrl.text.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 5, left: 4),
+                  child: Row(children: [
+                    const Icon(Icons.auto_awesome_rounded, size: 10, color: _C.green),
+                    const SizedBox(width: 4),
+                    Text('AI suggested',
+                        style: TextStyle(color: _C.green.withValues(alpha: 0.85), fontSize: 10, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+            ]),
           ),
-        ],
-      ),
+        ]),
+        const SizedBox(height: 14),
+
+        // Collection Date
+        _buildInput(
+          controller: _dateCtrl,
+          label: 'Collection Date',
+          hint: 'Tap to choose a date',
+          icon: Icons.calendar_month_rounded,
+          focusColor: _C.cyan,
+          readOnly: true,
+          onTap: _pickDate,
+          error: _dateError,
+        ),
+      ]),
     );
   }
 
-  // ── Submit Button ─────────────────────────────────────────────────────────
+  // ── Notes Card ────────────────────────────────────────────────────────────
+  Widget _buildNotesCard() {
+    return _GlassCard(
+      accentColor: _C.green,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const _SectionHeader(icon: Icons.sticky_note_2_outlined, title: 'Special Instructions', color: _C.green),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: _C.glass,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _C.glassBorder),
+          ),
+          child: TextField(
+            controller: _notesCtrl,
+            maxLines: 3,
+            style: const TextStyle(color: _C.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+            decoration: InputDecoration(
+              hintText: 'e.g. Handle with care, leave at reception…',
+              hintStyle: TextStyle(color: _C.textSec.withValues(alpha: 0.7), fontSize: 13),
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 14, right: 10, top: 14),
+                child: Icon(Icons.edit_note_rounded, color: _C.textSec, size: 20),
+              ),
+              prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  // ── Submit button ─────────────────────────────────────────────────────────
   Widget _buildSubmitButton() {
     return ScaleTransition(
-      scale: _buttonScaleAnim,
+      scale: _btnScale,
       child: GestureDetector(
-        onTap: _isLoading ? null : _handleSubmit,
+        onTap: _isLoading ? null : _submit,
         child: Container(
           height: 60,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             gradient: const LinearGradient(
-              colors: [_C.purple, _C.orange],
+              colors: [_C.accentA, _C.accentB],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
             boxShadow: [
-              BoxShadow(
-                color: _C.purpleGlow(0.45),
-                blurRadius: 28,
-                offset: const Offset(0, 8),
-                spreadRadius: -2,
-              ),
-              BoxShadow(
-                color: _C.orangeGlow(0.20),
-                blurRadius: 20,
-                offset: const Offset(8, 8),
-                spreadRadius: -4,
-              ),
+              BoxShadow(color: _C.blueGlow(0.45), blurRadius: 28, offset: const Offset(0, 8), spreadRadius: -2),
+              BoxShadow(color: _C.orangeGlow(0.20), blurRadius: 20, offset: const Offset(8, 8), spreadRadius: -4),
             ],
           ),
           child: Center(
             child: _isLoading
                 ? const SizedBox(
-                    width: 26,
-                    height: 26,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2.5),
+                    width: 26, height: 26,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                   )
-                : const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.rocket_launch_rounded,
-                          color: Colors.white, size: 20),
-                      SizedBox(width: 10),
-                      Text(
-                        'Submit Parcel',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ],
-                  ),
+                : const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 10),
+                    Text('Confirm Booking',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
+                    SizedBox(width: 8),
+                    Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                  ]),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDisclaimer() {
+    return Center(
+      child: Text(
+        '🔒  Your parcel details are encrypted and secure',
+        style: TextStyle(color: _C.textSec.withValues(alpha: 0.7), fontSize: 11.5, fontWeight: FontWeight.w400),
       ),
     );
   }
@@ -728,69 +661,67 @@ class _AddParcelScreenState extends State<AddParcelScreen>
   Widget _buildSuccessOverlay() {
     return Positioned.fill(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
-          color: Colors.black.withValues(alpha: 0.65),
+          color: Colors.black.withValues(alpha: 0.70),
           child: Center(
             child: ScaleTransition(
               scale: _successAnim,
               child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 32),
                 padding: const EdgeInsets.all(36),
                 decoration: BoxDecoration(
-                  color: _C.bg1,
+                  color: const Color(0xFF0F1C35),
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: _C.green.withValues(alpha: 0.35)),
+                  border: Border.all(color: _C.green.withValues(alpha: 0.4)),
                   boxShadow: [
-                    BoxShadow(
-                      color: _C.green.withValues(alpha: 0.22),
-                      blurRadius: 40,
-                      spreadRadius: 4,
-                    ),
-                    BoxShadow(
-                      color: _C.purpleGlow(0.15),
-                      blurRadius: 60,
-                      spreadRadius: 8,
-                    ),
+                    BoxShadow(color: _C.greenGlow(0.25), blurRadius: 48, spreadRadius: 4),
+                    BoxShadow(color: _C.blueGlow(0.12), blurRadius: 60, spreadRadius: 8),
                   ],
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: _C.green.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                              color: _C.green.withValues(alpha: 0.3),
-                              blurRadius: 24,
-                              spreadRadius: 2),
-                        ],
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: _C.green.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: _C.greenGlow(0.3), blurRadius: 24, spreadRadius: 2)],
+                    ),
+                    child: const Icon(Icons.check_rounded, color: _C.green, size: 44),
+                  ),
+                  const SizedBox(height: 22),
+                  const Text('Booking Confirmed!',
+                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Your parcel has been booked\nsuccessfully. Track it in My Deliveries.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14, height: 1.6),
+                  ),
+                  const SizedBox(height: 28),
+                  Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: const LinearGradient(colors: [_C.accentA, _C.accentB]),
+                      boxShadow: [BoxShadow(color: _C.blueGlow(0.4), blurRadius: 16, offset: const Offset(0, 6))],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          Navigator.of(context).pop();
+                        },
+                        child: const Center(
+                          child: Text('Back to Home',
+                              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                        ),
                       ),
-                      child: const Icon(Icons.check_rounded,
-                          color: _C.green, size: 44),
                     ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Parcel Added!',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Your parcel has been submitted\nsuccessfully.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.55),
-                        fontSize: 14,
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ]),
               ),
             ),
           ),
@@ -799,66 +730,8 @@ class _AddParcelScreenState extends State<AddParcelScreen>
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  //  REUSABLE COMPONENTS
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /// Glassmorphism card with subtle top-accent shimmer
-  Widget _glassCard({required Widget child, Color? accentColor}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            // rgba(255,255,255,0.05)
-            color: _C.glass,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: _C.glassBorder),
-            // Subtle top-edge accent line
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                (accentColor ?? _C.purple).withValues(alpha: 0.06),
-                Colors.white.withValues(alpha: 0.02),
-                Colors.transparent,
-              ],
-              stops: const [0.0, 0.3, 1.0],
-            ),
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
-
-  Widget _cardHeader(IconData icon, String title, Color color) {
-    return Row(children: [
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
-        ),
-        child: Icon(icon, color: color, size: 18),
-      ),
-      const SizedBox(width: 12),
-      Text(
-        title,
-        style: const TextStyle(
-          color: _C.textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.1,
-        ),
-      ),
-    ]);
-  }
-
-  Widget _buildGlowInput({
+  // ── Input field ───────────────────────────────────────────────────────────
+  Widget _buildInput({
     required TextEditingController controller,
     FocusNode? focusNode,
     required String label,
@@ -872,102 +745,133 @@ class _AddParcelScreenState extends State<AddParcelScreen>
     String? error,
     ValueChanged<String>? onChanged,
   }) {
-    final isFocused = focusNode?.hasFocus ?? false;
+    final focused  = focusNode?.hasFocus ?? false;
     final hasError = error != null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Label
-        AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 200),
-          style: TextStyle(
-            color: isFocused ? focusColor : _C.textSec,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.4,
-          ),
-          child: Text(label),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      AnimatedDefaultTextStyle(
+        duration: const Duration(milliseconds: 200),
+        style: TextStyle(
+          color: focused ? focusColor : _C.textSec,
+          fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5,
         ),
-        const SizedBox(height: 7),
-        // Input container
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+        child: Text(label.toUpperCase()),
+      ),
+      const SizedBox(height: 7),
+      AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: _C.surfaceEl,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: hasError
+                ? _C.red.withValues(alpha: 0.7)
+                : focused
+                    ? focusColor.withValues(alpha: 0.65)
+                    : _C.glassBorder,
+            width: focused ? 1.5 : 1.0,
+          ),
+          boxShadow: focused
+              ? [BoxShadow(color: focusColor.withValues(alpha: 0.2), blurRadius: 16)]
+              : hasError
+                  ? [BoxShadow(color: _C.red.withValues(alpha: 0.12), blurRadius: 10)]
+                  : [],
+        ),
+        child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          keyboardType: keyboardType,
+          readOnly: readOnly,
+          onTap: onTap,
+          onChanged: onChanged,
+          style: const TextStyle(color: _C.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: _C.textSec.withValues(alpha: 0.6), fontSize: 13.5, fontWeight: FontWeight.w400),
+            prefixIcon: Icon(icon, color: focused ? focusColor : _C.textSec, size: 18),
+            suffixIcon: suffix != null
+                ? Padding(padding: const EdgeInsets.only(right: 10), child: suffix)
+                : null,
+            suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+          ),
+        ),
+      ),
+      if (hasError)
+        Padding(
+          padding: const EdgeInsets.only(top: 5, left: 4),
+          child: Row(children: [
+            const Icon(Icons.error_outline_rounded, size: 12, color: _C.red),
+            const SizedBox(width: 4),
+            Text(error, style: const TextStyle(color: _C.red, fontSize: 11, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+    ]);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  REUSABLE WIDGETS
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _GlassCard extends StatelessWidget {
+  final Widget child;
+  final Color? accentColor;
+  const _GlassCard({required this.child, this.accentColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = accentColor ?? _C.accentA;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
-            // rgba(255,255,255,0.05)
-            color: _C.glass,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: hasError
-                  ? _C.red.withValues(alpha: 0.70)
-                  : isFocused
-                      ? focusColor.withValues(alpha: 0.65)
-                      : _C.glassBorder,
-              width: isFocused ? 1.5 : 1.0,
-            ),
-            boxShadow: isFocused
-                ? [
-                    BoxShadow(
-                        color: focusColor.withValues(alpha: 0.22),
-                        blurRadius: 16,
-                        spreadRadius: 0),
-                  ]
-                : hasError
-                    ? [
-                        BoxShadow(
-                            color: _C.red.withValues(alpha: 0.14),
-                            blurRadius: 10,
-                            spreadRadius: 0),
-                      ]
-                    : [],
-          ),
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            keyboardType: keyboardType,
-            readOnly: readOnly,
-            onTap: onTap,
-            onChanged: onChanged,
-            style: const TextStyle(
-              color: _C.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.20),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14),
-              prefixIcon: Icon(icon,
-                  color: isFocused ? focusColor : _C.textSec, size: 18),
-              suffixIcon: suffix != null
-                  ? Padding(
-                      padding: const EdgeInsets.only(right: 10), child: suffix)
-                  : null,
-              suffixIconConstraints:
-                  const BoxConstraints(minWidth: 0, minHeight: 0),
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: _C.glassBorder),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accent.withValues(alpha: 0.07),
+                Colors.white.withValues(alpha: 0.02),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.3, 1.0],
             ),
           ),
+          child: child,
         ),
-        // Error message
-        if (hasError)
-          Padding(
-            padding: const EdgeInsets.only(top: 5, left: 4),
-            child: Row(children: [
-              const Icon(Icons.error_outline_rounded, size: 12, color: _C.red),
-              const SizedBox(width: 4),
-              Text(error,
-                  style: const TextStyle(
-                      color: _C.red,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
-            ]),
-          ),
-      ],
+      ),
     );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Color color;
+  const _SectionHeader({required this.icon, required this.title, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Container(
+        padding: const EdgeInsets.all(9),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Icon(icon, color: color, size: 17),
+      ),
+      const SizedBox(width: 12),
+      Text(title,
+          style: const TextStyle(
+              color: _C.textPrimary, fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.1)),
+    ]);
   }
 }

@@ -27,3 +27,8 @@ coverage/
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# User/AI generated local files
+analyze*.txt
+implementation_plan.md
+walkthrough.md
