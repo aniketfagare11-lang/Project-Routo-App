@@ -15,6 +15,7 @@ import 'package:lottie/lottie.dart';
 import 'add_parcel_screen.dart';
 import 'parcel_details_screen.dart';
 import 'profile_screen.dart';
+import 'rider_route_selection_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  DESIGN TOKENS
@@ -618,15 +619,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Lottie Delivery Animation
-        SizedBox(
-          width: 140,
-          height: 100,
-          child: Lottie.asset(
-            'assets/animations/delivery.json',
-            fit: BoxFit.contain,
-          ),
+      // Lottie Delivery Animation — error-guarded so a missing/corrupt asset
+      // never crashes the home screen.
+      SizedBox(
+        width: 140,
+        height: 100,
+        child: Lottie.asset(
+          'assets/animations/delivery.json',
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
         ),
+      ),
         const SizedBox(height: 8),
         // Dynamic greeting pill
         ClipRRect(
@@ -645,12 +648,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: [
                   Text(timeEmoji, style: const TextStyle(fontSize: 13)),
                   const SizedBox(width: 8),
-                  Text(
-                    '$timeGreeting, $_userName 👋',
-                    style: const TextStyle(
-                      color: _C.textPrimary,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
+                  Flexible(
+                    child: Text(
+                      '$timeGreeting, $_userName 👋',
+                      style: const TextStyle(
+                        color: _C.textPrimary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -770,7 +776,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             subtitle: 'Earn on your route',
             gradientColors: const [Color(0xFFF97316), Color(0xFFEF4444)],
             glowColor: _C.accentB,
-            onTap: _handleSearch,
+            onTap: () => Navigator.of(context).push(
+              _slideRoute(const RiderRouteSelectionScreen()),
+            ),
           ),
         ),
       ]),
@@ -963,26 +971,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       child: Row(children: [
         const Icon(Icons.radio_button_checked, color: _C.accentA, size: 16),
         const SizedBox(width: 8),
-        Text(from,
-            style: const TextStyle(
-                color: _C.textPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 13.5)),
-        const Spacer(),
-        Container(
-            width: 40,
-            height: 1.5,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_C.accentA, _C.accentB]),
-              borderRadius: BorderRadius.circular(2),
-            )),
-        const Icon(Icons.arrow_forward, color: _C.accentB, size: 14),
-        const Spacer(),
-        Text(to,
-            style: const TextStyle(
-                color: _C.textPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 13.5)),
+        Expanded(
+          child: Text(from,
+              style: const TextStyle(
+                  color: _C.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5),
+              overflow: TextOverflow.ellipsis),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8.0),
+          child: Icon(Icons.arrow_forward, color: _C.accentB, size: 14),
+        ),
+        Expanded(
+          child: Text(to,
+              style: const TextStyle(
+                  color: _C.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5),
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end),
+        ),
         const SizedBox(width: 8),
         const Icon(Icons.location_on_rounded, color: _C.accentB, size: 16),
       ]),
@@ -1077,22 +1086,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               color: Colors.white, size: 16),
         ),
         const SizedBox(width: 14),
-        const Text.rich(
-          TextSpan(
-            text: 'Earn up to ',
-            style: TextStyle(
-                color: _C.textPrimary,
-                fontSize: 14,
-                fontWeight: FontWeight.w500),
-            children: [
-              TextSpan(
-                  text: '₹120 ',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      color: _C.accentB)),
-              TextSpan(text: 'on this route'),
-            ],
+        const Expanded(
+          child: Text.rich(
+            TextSpan(
+              text: 'Earn up to ',
+              style: TextStyle(
+                  color: _C.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500),
+              children: [
+                TextSpan(
+                    text: '₹120 ',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: _C.accentB)),
+                TextSpan(text: 'on this route'),
+              ],
+            ),
           ),
         ),
       ]),
@@ -1699,31 +1710,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   //  BOTTOM NAV
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildBottomNav() {
+    // ⚠️  IMPORTANT: Do NOT use BackdropFilter here.
+    // BackdropFilter inside a bottomNavigationBar / ClipRRect requires
+    // a composited layer beneath it.  During push/pop route transitions
+    // that layer is not available and causes a fully-black render pass.
+    // Use a solid semi-transparent colour instead.
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: _C.surface.withValues(alpha: 0.9),
-            border: const Border(
-                top: BorderSide(color: _C.glassBorder, width: 0.8)),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(
-                      0, Icons.home_filled, Icons.home_outlined, 'Home'),
-                  _buildNavItem(
-                      1, Icons.map_rounded, Icons.map_outlined, 'Map'),
-                  _buildNavItem(2, Icons.insights_rounded,
-                      Icons.insights_outlined, 'Analytics'),
-                ],
-              ),
+      child: Container(
+        decoration: BoxDecoration(
+          // Solid deep-navy — visually identical to the backdrop-filtered
+          // version but never causes a black-screen compositing failure.
+          color: const Color(0xED0F1C35),
+          border: const Border(
+              top: BorderSide(color: _C.glassBorder, width: 0.8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.40),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                    0, Icons.home_filled, Icons.home_outlined, 'Home'),
+                _buildNavItem(
+                    1, Icons.map_rounded, Icons.map_outlined, 'Map'),
+                _buildNavItem(2, Icons.insights_rounded,
+                    Icons.insights_outlined, 'Analytics'),
+              ],
             ),
           ),
         ),
@@ -1790,8 +1812,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // opaque:true allows the HomeScreen to correctly unmount during transition,
+  // preventing black screen rendering issues when returning.
   PageRoute _slideRoute(Widget page) {
     return PageRouteBuilder(
+      opaque: true,
       pageBuilder: (_, __, ___) => page,
       transitionsBuilder: (_, anim, __, child) {
         return SlideTransition(

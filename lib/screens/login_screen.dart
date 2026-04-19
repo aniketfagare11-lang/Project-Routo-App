@@ -125,11 +125,7 @@ class _LoginScreenState extends State<LoginScreen>
         email: email,
         password: password,
       );
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
-      );
+      // Navigation is now handled natively via the StreamBuilder wrapper in main.dart
     } on FirebaseAuthException catch (e) {
       String message;
       switch (e.code) {
@@ -622,13 +618,17 @@ class _LoginScreenState extends State<LoginScreen>
         GestureDetector(
           onTap: () => Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const SignupScreen())),
-          child: const Text('Sign Up',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Colors.white)),
+          behavior: HitTestBehavior.opaque,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Text('Sign Up',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    decoration: TextDecoration.underline,
+                    decorationColor: Colors.white)),
+          ),
         ),
       ],
     );

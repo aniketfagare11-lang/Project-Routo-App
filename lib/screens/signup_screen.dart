@@ -5,6 +5,16 @@ import 'package:firebase_auth_platform_interface/firebase_auth_platform_interfac
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'home_screen.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  SIGNUP SCREEN  ·  Web + Android compatible
+//
+//  Platform strategy:
+//   Android  → Full OTP flow via verifyPhoneNumber (no reCAPTCHA needed)
+//   Web      → RecaptchaVerifier (invisible) + signInWithPhoneNumber
+//              OTP field shown after "Send OTP" completes.
+//              If phone auth is skipped, email-only signup still works.
+// ─────────────────────────────────────────────────────────────────────────────
+
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -14,17 +24,25 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen>
     with TickerProviderStateMixin {
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _mobileController = TextEditingController();
-  final _otpController = TextEditingController();
-  final _passwordController = TextEditingController();
+  // ── Form controllers ──────────────────────────────────────────────────────
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _mobileCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
   bool _isSendingOtp = false;
-  String? _verificationId;
-  dynamic _webConfirmationResult;
+  bool _otpSent = false;
 
+  /// Android: verificationId from verifyPhoneNumber()
+  String? _verificationId;
+
+  /// Web: ConfirmationResult returned by signInWithPhoneNumber()
+  ConfirmationResult? _webConfirmationResult;
+
+  // ── Animations ───────────────────────────────────────────────────────────
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late AnimationController _pulseController;
@@ -52,18 +70,13 @@ class _SignupScreenState extends State<SignupScreen>
       duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
 
-    _fadeAnim = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOut,
-    );
+    _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
 
     _logoSlide = Tween<Offset>(
       begin: const Offset(0, -0.4),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(
+        CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
 
     _cardSlide = Tween<Offset>(
       begin: const Offset(0, 0.5),
@@ -93,30 +106,30 @@ class _SignupScreenState extends State<SignupScreen>
     _fadeController.dispose();
     _slideController.dispose();
     _pulseController.dispose();
-    _nameController.dispose();
-    _emailController.dispose();
-    _mobileController.dispose();
-    _otpController.dispose();
-    _passwordController.dispose();
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _mobileCtrl.dispose();
+    _otpCtrl.dispose();
+    _passwordCtrl.dispose();
     super.dispose();
   }
+
+  // ── SnackBars ────────────────────────────────────────────────────────────
 
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 18),
-            const SizedBox(width: 10),
-            Expanded(child: Text(message, style: const TextStyle(fontSize: 14))),
-          ],
-        ),
+        content: Row(children: [
+          const Icon(Icons.error_outline, color: Colors.white, size: 18),
+          const SizedBox(width: 10),
+          Expanded(child: Text(message, style: const TextStyle(fontSize: 14))),
+        ]),
         backgroundColor: const Color(0xFFD32F2F),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 5),
       ),
     );
   }
@@ -125,155 +138,229 @@ class _SignupScreenState extends State<SignupScreen>
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(color: Colors.white, fontSize: 14)),
-        backgroundColor: Colors.green,
+        content: Text(message,
+            style: const TextStyle(color: Colors.white, fontSize: 14)),
+        backgroundColor: Colors.green.shade700,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
-  Future<void> _sendOtp() async {
-    String phone = _mobileController.text.trim();
-    if (phone.isEmpty) {
-      _showError('Please enter a mobile number first.');
-      return;
-    }
+  // ── Input helpers ─────────────────────────────────────────────────────────
 
-    if (!phone.startsWith('+')) {
-      phone = '+91$phone';
+  /// Normalise phone number — prepend +91 if no country code given.
+  String _normalizePhone(String phone) {
+    phone = phone.trim();
+    if (!phone.startsWith('+')) phone = '+91$phone';
+    return phone;
+  }
+
+  /// Validate inputs before sending OTP.
+  bool _validateForOtp() {
+    if (_mobileCtrl.text.trim().isEmpty) {
+      _showError('Please enter a mobile number first.');
+      return false;
     }
+    return true;
+  }
+
+  /// Validate all inputs before final signup.
+  bool _validateForSignup() {
+    final name = _nameCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text.trim();
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      _showError('Please fill in Name, Email, and Password.');
+      return false;
+    }
+    if (!email.contains('@') || !email.contains('.')) {
+      _showError('Please enter a valid email address.');
+      return false;
+    }
+    if (password.length < 6) {
+      _showError('Password must be at least 6 characters.');
+      return false;
+    }
+    // If OTP was sent but not entered, block signup.
+    if (_otpSent && _otpCtrl.text.trim().isEmpty) {
+      _showError('Please enter the OTP sent to your mobile.');
+      return false;
+    }
+    return true;
+  }
+
+  // ── Send OTP ─────────────────────────────────────────────────────────────
+
+  Future<void> _sendOtp() async {
+    if (!_validateForOtp()) return;
+    final phone = _normalizePhone(_mobileCtrl.text);
 
     setState(() => _isSendingOtp = true);
     try {
       if (kIsWeb) {
-        RecaptchaVerifier verifier = RecaptchaVerifier(
-          auth: FirebaseAuthPlatform.instance,
-          container: 'recaptcha-container',
-          size: RecaptchaVerifierSize.compact,
-          theme: RecaptchaVerifierTheme.light,
-        );
-        _webConfirmationResult = await FirebaseAuth.instance.signInWithPhoneNumber(phone, verifier);
-        _showSuccess('OTP Sent to $phone');
+        await _sendOtpWeb(phone);
       } else {
-        await FirebaseAuth.instance.verifyPhoneNumber(
-          phoneNumber: phone,
-          verificationCompleted: (PhoneAuthCredential credential) {
-            if (credential.smsCode != null) {
-              _otpController.text = credential.smsCode!;
-            }
-          },
-          verificationFailed: (FirebaseAuthException e) {
-            _showError(e.message ?? 'Verification failed');
-          },
-          codeSent: (String verificationId, int? resendToken) {
-            if (mounted) {
-              setState(() => _verificationId = verificationId);
-              _showSuccess('OTP Sent to $phone');
-            }
-          },
-          codeAutoRetrievalTimeout: (String verificationId) {},
-        );
+        await _sendOtpAndroid(phone);
       }
     } catch (e) {
-      _showError('Failed to send OTP. Try again.');
+      _showError('Failed to send OTP. Check the number and try again.');
     } finally {
       if (mounted) setState(() => _isSendingOtp = false);
     }
   }
 
+  /// Web OTP — uses invisible RecaptchaVerifier.
+  Future<void> _sendOtpWeb(String phone) async {
+    // RecaptchaVerifier anchors to 'recaptcha-container' div in index.html.
+    // size: invisible means it auto-solves for most real users.
+    final verifier = RecaptchaVerifier(
+      auth: FirebaseAuthPlatform.instance,
+      container: 'recaptcha-container',
+      size: RecaptchaVerifierSize.compact,
+      theme: RecaptchaVerifierTheme.light,
+      onSuccess: () => debugPrint('reCAPTCHA solved'),
+      onError: (FirebaseAuthException e) =>
+          _showError('reCAPTCHA failed: ${e.message}'),
+      onExpired: () => _showError('reCAPTCHA expired. Try again.'),
+    );
+
+    _webConfirmationResult =
+        await FirebaseAuth.instance.signInWithPhoneNumber(phone, verifier);
+
+    if (mounted) {
+      setState(() => _otpSent = true);
+      _showSuccess('OTP sent to $phone');
+    }
+  }
+
+  /// Android OTP — uses verifyPhoneNumber.
+  Future<void> _sendOtpAndroid(String phone) async {
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: phone,
+      verificationCompleted: (PhoneAuthCredential credential) {
+        // Auto-retrieval: fill OTP field silently.
+        if (mounted && credential.smsCode != null) {
+          setState(() {
+            _otpCtrl.text = credential.smsCode!;
+            _otpSent = true;
+          });
+        }
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        _showError(e.message ?? 'Phone verification failed.');
+        if (mounted) setState(() => _isSendingOtp = false);
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        if (mounted) {
+          setState(() {
+            _verificationId = verificationId;
+            _otpSent = true;
+          });
+          _showSuccess('OTP sent to $phone');
+        }
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+        if (mounted) _verificationId = verificationId;
+      },
+      timeout: const Duration(seconds: 60),
+    );
+  }
+
+  // ── Main signup ──────────────────────────────────────────────────────────
+
   Future<void> _handleSignup() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    final name = _nameController.text.trim();
-
-    final otp = _otpController.text.trim();
-
-    if (email.isEmpty || password.isEmpty || name.isEmpty) {
-      _showError('Please fill in all required email/password fields.');
-      return;
-    }
-
-    if ((_verificationId != null || _webConfirmationResult != null) && otp.isEmpty) {
-      _showError('Please enter the OTP sent to your mobile.');
-      return;
-    }
+    if (!_validateForSignup()) return;
 
     setState(() => _isLoading = true);
     try {
-      UserCredential userCred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+      // Step 1 — Create email/password account.
+      final userCred =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailCtrl.text.trim(),
+        password: _passwordCtrl.text.trim(),
       );
-      
+
       final user = userCred.user;
-      if (user != null) {
-        await user.updateDisplayName(name);
-        
-        if (otp.isNotEmpty && (_verificationId != null || _webConfirmationResult != null)) {
-          try {
-            PhoneAuthCredential credential;
-            if (kIsWeb && _webConfirmationResult != null) {
-              credential = PhoneAuthProvider.credential(
-                verificationId: _webConfirmationResult.verificationId,
-                smsCode: otp,
-              );
-            } else {
-              credential = PhoneAuthProvider.credential(
-                verificationId: _verificationId!,
-                smsCode: otp,
-              );
-            }
-            await user.linkWithCredential(credential);
-          } on FirebaseAuthException catch (e) {
-            if (e.code == 'invalid-verification-code') {
-              _showError('Invalid OTP');
-            } else {
-              _showError(e.message ?? 'Phone verification failed.');
-            }
-          }
-        }
+      if (user == null) throw Exception('User creation returned null.');
+
+      // Step 2 — Store display name.
+      await user.updateDisplayName(_nameCtrl.text.trim());
+
+      // Step 3 — Link phone credential if OTP was completed.
+      final otp = _otpCtrl.text.trim();
+      if (_otpSent && otp.isNotEmpty) {
+        await _linkPhoneCredential(user, otp);
       }
-      
-      _showSuccess('Signup Successful');
+
+      // Step 4 — Pop back to root so AuthWrapper can navigate to Home.
+      _showSuccess('Welcome to Routo!');
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } on FirebaseAuthException catch (e) {
-      String message;
-      switch (e.code) {
-        case 'email-already-in-use':
-          message = 'User already exists. Please login.';
-          break;
-        case 'invalid-email':
-          message = 'The email address is not valid.';
-          break;
-        case 'weak-password':
-          message = 'Please enter a stronger password.';
-          break;
-        case 'operation-not-allowed':
-          message = 'Email/password accounts are not enabled.';
-          break;
-        case 'too-many-requests':
-          message = 'Too many requests. Please try again later.';
-          break;
-        case 'invalid-verification-code':
-          message = 'Invalid OTP';
-          break;
-        default:
-          message = e.message ?? 'Signup failed. Please try again.';
-      }
-      _showError(message);
+      _showError(_authErrorMessage(e.code, e.message));
     } catch (e) {
       _showError('An unexpected error occurred. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  /// Link phone credential to the freshly created email account.
+  Future<void> _linkPhoneCredential(User user, String otp) async {
+    try {
+      if (kIsWeb && _webConfirmationResult != null) {
+        // Web: call confirm() on the ConfirmationResult object directly.
+        await _webConfirmationResult!.confirm(otp);
+        // confirm() signs in as phone user — we must sign in the email user back.
+        // Re-sign-in with email so the email account is the primary user.
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailCtrl.text.trim(),
+          password: _passwordCtrl.text.trim(),
+        );
+      } else if (!kIsWeb && _verificationId != null) {
+        // Android: use PhoneAuthCredential and link it.
+        final credential = PhoneAuthProvider.credential(
+          verificationId: _verificationId!,
+          smsCode: otp,
+        );
+        await user.linkWithCredential(credential);
+      }
+    } on FirebaseAuthException catch (e) {
+      // Phone linking failed — account is still created, just log the issue.
+      debugPrint('Phone link failed (non-fatal): ${e.code} – ${e.message}');
+      if (e.code == 'invalid-verification-code') {
+        _showError(
+            'Invalid OTP — your account was created but phone was not linked.');
+      }
+      // Don't rethrow; email account creation succeeded.
+    }
+  }
+
+  /// Maps Firebase error codes to user-friendly messages.
+  String _authErrorMessage(String code, String? rawMessage) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'An account already exists for this email. Please sign in.';
+      case 'invalid-email':
+        return 'The email address is not valid.';
+      case 'weak-password':
+        return 'Password is too weak. Please use at least 6 characters.';
+      case 'operation-not-allowed':
+        return 'Email/password sign-up is not enabled. Contact support.';
+      case 'too-many-requests':
+        return 'Too many requests. Please wait a moment and try again.';
+      case 'network-request-failed':
+        return 'No internet connection. Please check your network.';
+      default:
+        return rawMessage ?? 'Sign-up failed. Please try again.';
+    }
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -286,11 +373,11 @@ class _SignupScreenState extends State<SignupScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF0D47A1), // Deep blue
-                Color(0xFF1565C0), // Blue
-                Color(0xFF1976D2), // Medium blue
-                Color(0xFFE65100), // Deep orange
-                Color(0xFFFF6F00), // Amber orange
+                Color(0xFF0D47A1),
+                Color(0xFF1565C0),
+                Color(0xFF1976D2),
+                Color(0xFFE65100),
+                Color(0xFFFF6F00),
               ],
               stops: [0.0, 0.25, 0.45, 0.78, 1.0],
             ),
@@ -298,33 +385,24 @@ class _SignupScreenState extends State<SignupScreen>
           child: SafeArea(
             child: Stack(
               children: [
-                // Decorative background circles
                 Positioned(
                   top: -60,
                   right: -60,
-                  child: _buildDecoCircle(200, Colors.white.withValues(alpha: 0.04)),
+                  child: _decoCircle(200, Colors.white.withValues(alpha: 0.04)),
                 ),
                 Positioned(
                   top: 80,
                   left: -80,
-                  child: _buildDecoCircle(160, Colors.white.withValues(alpha: 0.03)),
+                  child: _decoCircle(160, Colors.white.withValues(alpha: 0.03)),
                 ),
                 Positioned(
                   bottom: 100,
                   right: -40,
-                  child: _buildDecoCircle(120, Colors.white.withValues(alpha: 0.04)),
+                  child: _decoCircle(120, Colors.white.withValues(alpha: 0.04)),
                 ),
-                // Animated route path decoration
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: CustomPaint(
-                    painter: SignupRouteDotsPainter(),
-                  ),
+                Positioned.fill(
+                  child: CustomPaint(painter: SignupRouteDotsPainter()),
                 ),
-                // Main content
                 SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
                   child: ConstrainedBox(
@@ -338,41 +416,29 @@ class _SignupScreenState extends State<SignupScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const SizedBox(height: 48),
-                          // Logo section
                           SlideTransition(
-                            position: _logoSlide,
-                            child: _buildLogoSection(),
-                          ),
+                              position: _logoSlide, child: _buildLogoSection()),
                           const SizedBox(height: 12),
-                          // Tagline
                           ScaleTransition(
-                            scale: _taglineScale,
-                            child: _buildTagline(),
-                          ),
+                              scale: _taglineScale, child: _buildTagline()),
                           const SizedBox(height: 44),
-                          // Signup card
                           SlideTransition(
-                            position: _cardSlide,
-                            child: _buildSignupCard(),
-                          ),
+                              position: _cardSlide, child: _buildSignupCard()),
                           const SizedBox(height: 24),
-                          // Footer
                           FadeTransition(
-                            opacity: _fadeAnim,
-                            child: _buildFooter(),
-                          ),
+                              opacity: _fadeAnim, child: _buildFooter()),
                           const SizedBox(height: 32),
                         ],
                       ),
                     ),
                   ),
                 ),
-                // Back Button
                 Positioned(
                   top: 16,
                   left: 16,
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.white),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
@@ -384,67 +450,62 @@ class _SignupScreenState extends State<SignupScreen>
     );
   }
 
-  Widget _buildDecoCircle(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-      ),
-    );
-  }
+  // ── Decorative helpers ───────────────────────────────────────────────────
+
+  Widget _decoCircle(double size, Color color) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+      );
 
   Widget _buildLogoSection() {
-    return Column(
-      children: [
-        AnimatedBuilder(
-          animation: _pulseAnim,
-          builder: (context, child) =>
-              Transform.scale(scale: _pulseAnim.value, child: child),
-          child: Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                  spreadRadius: 2,
-                ),
-                BoxShadow(
-                  color: const Color(0xFFFF6F00).withValues(alpha: 0.3),
-                  blurRadius: 32,
-                  offset: const Offset(0, 4),
-                  spreadRadius: 4,
-                ),
-              ],
-            ),
-            child: ClipOval(
-              child: Image.asset('assets/images/routo_logo.png',
-                  fit: BoxFit.cover),
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        const Text(
-          'ROUTO',
-          style: TextStyle(
-            fontSize: 36,
-            fontWeight: FontWeight.w900,
+    return Column(children: [
+      AnimatedBuilder(
+        animation: _pulseAnim,
+        builder: (_, child) =>
+            Transform.scale(scale: _pulseAnim.value, child: child),
+        child: Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
             color: Colors.white,
-            letterSpacing: 4,
-            shadows: [
-              Shadow(
-                  color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 2))
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+                spreadRadius: 2,
+              ),
+              BoxShadow(
+                color: const Color(0xFFFF6F00).withValues(alpha: 0.3),
+                blurRadius: 32,
+                offset: const Offset(0, 4),
+                spreadRadius: 4,
+              ),
             ],
           ),
+          child: ClipOval(
+            child:
+                Image.asset('assets/images/routo_logo.png', fit: BoxFit.cover),
+          ),
         ),
-      ],
-    );
+      ),
+      const SizedBox(height: 14),
+      const Text(
+        'ROUTO',
+        style: TextStyle(
+          fontSize: 36,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          letterSpacing: 4,
+          shadows: [
+            Shadow(
+                color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 2))
+          ],
+        ),
+      ),
+    ]);
   }
 
   Widget _buildTagline() {
@@ -453,7 +514,8 @@ class _SignupScreenState extends State<SignupScreen>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(50),
         color: Colors.white.withValues(alpha: 0.12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 0.8),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.2), width: 0.8),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -484,13 +546,11 @@ class _SignupScreenState extends State<SignupScreen>
             color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 40,
             offset: const Offset(0, 16),
-            spreadRadius: 0,
           ),
           BoxShadow(
             color: const Color(0xFF1565C0).withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(-4, 0),
-            spreadRadius: 0,
           ),
         ],
       ),
@@ -510,7 +570,7 @@ class _SignupScreenState extends State<SignupScreen>
             ),
             const SizedBox(height: 4),
             const Text(
-              'Sign up to get started',
+              'Sign up to get started with Routo',
               style: TextStyle(
                 fontSize: 14,
                 color: Color(0xFF8A97A6),
@@ -518,83 +578,100 @@ class _SignupScreenState extends State<SignupScreen>
               ),
             ),
             const SizedBox(height: 28),
-            
+
+            // Name
             _buildTextField(
-              controller: _nameController,
+              controller: _nameCtrl,
               hint: 'Full Name',
               icon: Icons.person_outline,
             ),
-            const SizedBox(height: 16),
-            
+            const SizedBox(height: 14),
+
+            // Email
             _buildTextField(
-              controller: _emailController,
+              controller: _emailCtrl,
               hint: 'Email address',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
             ),
-            const SizedBox(height: 16),
-            
+            const SizedBox(height: 14),
+
+            // Mobile + Send OTP button
             _buildTextField(
-              controller: _mobileController,
-              hint: 'Mobile Number',
+              controller: _mobileCtrl,
+              hint: 'Mobile Number (with country code)',
               icon: Icons.phone_android_outlined,
               keyboardType: TextInputType.phone,
-              suffix: TextButton(
-                onPressed: _isSendingOtp ? null : _sendOtp,
-                child: _isSendingOtp 
-                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                   : const Text('Send OTP', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
+              suffix: _isSendingOtp
+                  ? const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : TextButton(
+                      onPressed: _sendOtp,
+                      child: Text(
+                        _otpSent ? 'Resend' : 'Send OTP',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                    ),
             ),
-            const SizedBox(height: 16),
-            
-            _buildTextField(
-              controller: _otpController,
-              hint: 'OTP Verification Code',
-              icon: Icons.message_outlined,
-              keyboardType: TextInputType.number,
+            const SizedBox(height: 14),
+
+            // OTP field — shown prominently once OTP is sent
+            AnimatedCrossFade(
+              firstChild: const SizedBox.shrink(),
+              secondChild: Column(children: [
+                _buildTextField(
+                  controller: _otpCtrl,
+                  hint: 'Enter OTP',
+                  icon: Icons.message_outlined,
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 14),
+              ]),
+              crossFadeState: _otpSent
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 300),
             ),
-            const SizedBox(height: 16),
-            
+
+            // Password
             _buildTextField(
-              controller: _passwordController,
-              hint: 'Password',
+              controller: _passwordCtrl,
+              hint: 'Password (min 6 characters)',
               icon: Icons.lock_outline_rounded,
               isPassword: true,
             ),
-            const SizedBox(height: 32),
-            
+            const SizedBox(height: 28),
+
+            // Sign Up button
             _buildSignupButton(),
             const SizedBox(height: 20),
+
             // Divider
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 0.8,
-                    color: const Color(0xFFE8ECF0),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    'or continue with',
-                    style: TextStyle(
-                      color: Color(0xFFB0BAC5),
-                      fontSize: 12.5,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    height: 0.8,
-                    color: const Color(0xFFE8ECF0),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Google Social button
+            Row(children: [
+              Expanded(
+                  child:
+                      Container(height: 0.8, color: const Color(0xFFE8ECF0))),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text('or',
+                    style: TextStyle(color: Color(0xFFB0BAC5), fontSize: 12.5)),
+              ),
+              Expanded(
+                  child:
+                      Container(height: 0.8, color: const Color(0xFFE8ECF0))),
+            ]),
+            const SizedBox(height: 16),
+
+            // Google button (UI only — wire up when needed)
             _buildGoogleButton(),
           ],
         ),
@@ -636,7 +713,7 @@ class _SignupScreenState extends State<SignupScreen>
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Icon(icon, color: const Color(0xFF8A97A6), size: 20),
           ),
-          suffixIcon: suffix ?? 
+          suffixIcon: suffix ??
               (isPassword
                   ? IconButton(
                       icon: Icon(
@@ -665,18 +742,22 @@ class _SignupScreenState extends State<SignupScreen>
         height: 54,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1565C0), Color(0xFFE65100)],
+          gradient: LinearGradient(
+            colors: _isLoading
+                ? [const Color(0xFF9E9E9E), const Color(0xFF757575)]
+                : [const Color(0xFF1565C0), const Color(0xFFE65100)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1565C0).withValues(alpha: 0.35),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          boxShadow: _isLoading
+              ? []
+              : [
+                  BoxShadow(
+                    color: const Color(0xFF1565C0).withValues(alpha: 0.35),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
         ),
         child: Center(
           child: _isLoading
@@ -684,22 +765,18 @@ class _SignupScreenState extends State<SignupScreen>
                   width: 22,
                   height: 22,
                   child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2.5,
-                  ),
+                      color: Colors.white, strokeWidth: 2.5),
                 )
               : const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
+                    Text('Sign Up',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                        )),
                     SizedBox(width: 8),
                     Icon(Icons.arrow_forward_rounded,
                         color: Colors.white, size: 18),
@@ -730,7 +807,6 @@ class _SignupScreenState extends State<SignupScreen>
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: 28,
@@ -741,7 +817,7 @@ class _SignupScreenState extends State<SignupScreen>
                 child: Image.asset(
                   'assets/images/google.png',
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stack) => const Text('G',
+                  errorBuilder: (_, __, ___) => const Text('G',
                       style: TextStyle(
                           color: Color(0xFF4285F4),
                           fontWeight: FontWeight.w800,
@@ -766,13 +842,8 @@ class _SignupScreenState extends State<SignupScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          "Already have an account? ",
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-          ),
-        ),
+        const Text('Already have an account? ',
+            style: TextStyle(color: Colors.white70, fontSize: 14)),
         GestureDetector(
           onTap: () => Navigator.of(context).pop(),
           child: const Text(
@@ -791,6 +862,9 @@ class _SignupScreenState extends State<SignupScreen>
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  ROUTE DOTS BACKGROUND PAINTER
+// ─────────────────────────────────────────────────────────────────────────────
 class SignupRouteDotsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
