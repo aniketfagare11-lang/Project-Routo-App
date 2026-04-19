@@ -32,3 +32,12 @@ coverage/
 analyze*.txt
 implementation_plan.md
 walkthrough.md
+
+# Node / Firebase JS SDK (not needed for Flutter)
+node_modules/
+package-lock.json
+package.json
+
+# Log / temp files
+*.txt
+flutter_run*.txt

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -5,32 +6,30 @@ import 'package:flutter/services.dart';
 
 import 'settings_screen.dart';
 import 'personal_details_screen.dart';
-import 'my_routes_screen.dart';
+import 'history_screen.dart';
 import 'saved_addresses_screen.dart';
-import 'payment_methods_screen.dart';
+import 'earnings_screen.dart';
 import 'notifications_screen.dart';
 import 'privacy_security_screen.dart';
 import 'help_support_screen.dart';
 import 'login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  DESIGN TOKENS — same as HomeScreen
+//  DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────────────────────
 class _C {
-  static const bg1        = Color(0xFF020617);
-  static const glass      = Color(0x14FFFFFF);
-  static const glassBorder= Color(0x20FFFFFF);
-  static const surfaceEl  = Color(0xFF131F38);
+  static const bg1         = Color(0xFF020617);
+  static const glass       = Color(0x14FFFFFF);
+  static const glassBorder = Color(0x20FFFFFF);
+  static const surfaceEl   = Color(0xFF131F38);
 
-  static const accentA = Color(0xFF3B82F6); // blue
-  static const accentB = Color(0xFFF97316); // orange
-  static const accentC = Color(0xFF8B5CF6); // purple
+  static const accentA = Color(0xFF3B82F6);
+  static const accentB = Color(0xFFF97316);
+  static const accentC = Color(0xFF8B5CF6);
 
-  static const green   = Color(0xFF10B981);
-  static const red     = Color(0xFFEF4444);
-
+  static const green       = Color(0xFF10B981);
+  static const red         = Color(0xFFEF4444);
   static const textPrimary = Color(0xFFF1F5F9);
   static const textSec     = Color(0xFF64748B);
 
@@ -81,10 +80,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   late Animation<double> _pulseAnim;
 
   // -- User Data --
-  String _userName = 'Guest User';
+  String _userName  = 'Guest User';
   String _userEmail = 'Not signed in';
-  String _joinedDate = 'Unknown';
-  User? _currentUser;
+  User?  _currentUser;
+  StreamSubscription<User?>? _userSub;
 
   @override
   void initState() {
@@ -106,20 +105,20 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _loadUserData() {
-    _currentUser = FirebaseAuth.instance.currentUser;
-    if (_currentUser != null) {
-      setState(() {
-        _userName = _currentUser?.displayName ?? _currentUser?.email?.split('@')[0] ?? 'User';
-        _userEmail = _currentUser?.email ?? 'No Email';
-        if (_currentUser?.metadata.creationTime != null) {
-          _joinedDate = DateFormat('MMMM yyyy').format(_currentUser!.metadata.creationTime!);
-        }
-      });
-    }
+    _userSub = FirebaseAuth.instance.userChanges().listen((user) {
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+          _userName  = user?.displayName ?? user?.email?.split('@')[0] ?? 'User';
+          _userEmail = user?.email ?? 'No Email';
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _userSub?.cancel();
     _masterCtrl.dispose();
     _bgCtrl.dispose();
     _pulseCtrl.dispose();
@@ -127,14 +126,14 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   List<_MenuItem> _buildMenuItems(BuildContext context) => [
-    _MenuItem(icon: Icons.person_outline_rounded,      title: 'Personal Details',  subtitle: 'Name, email, phone',     color: _C.accentA, onTap: () => _push(context, const PersonalDetailsScreen())),
-    _MenuItem(icon: Icons.route_rounded,               title: 'My Routes',         subtitle: 'Active & past routes',   color: _C.accentC, onTap: () => _push(context, const MyRoutesScreen())),
-    _MenuItem(icon: Icons.location_on_outlined,        title: 'Saved Addresses',   subtitle: 'Home, work & more',      color: _C.green,   onTap: () => _push(context, const SavedAddressesScreen())),
-    _MenuItem(icon: Icons.payment_rounded,             title: 'Payment Methods',   subtitle: 'Cards & wallets',        color: _C.accentB, onTap: () => _push(context, const PaymentMethodsScreen())),
-    _MenuItem(icon: Icons.notifications_none_rounded,  title: 'Notifications',     subtitle: 'Alerts & preferences',   color: _C.accentA, onTap: () => _push(context, const NotificationsScreen())),
-    _MenuItem(icon: Icons.shield_outlined,             title: 'Privacy & Security', subtitle: 'Password & 2FA', color: _C.accentC, onTap: () => _push(context, const PrivacySecurityScreen())),
-    _MenuItem(icon: Icons.help_outline_rounded,        title: 'Help & Support',    subtitle: 'FAQ & live chat',        color: _C.green,   onTap: () => _push(context, const HelpSupportScreen())),
-    _MenuItem(icon: Icons.settings_outlined,           title: 'Settings',          subtitle: 'App preferences',        color: _C.accentB, onTap: () => _push(context, const SettingsScreen())),
+    _MenuItem(icon: Icons.person_outline_rounded,     title: 'Personal Details',   subtitle: 'Name, email, KYC',        color: _C.accentA, onTap: () => _push(context, const PersonalDetailsScreen())),
+    _MenuItem(icon: Icons.history_rounded,            title: 'History',            subtitle: 'Delivered & sent parcels', color: _C.accentC, onTap: () => _push(context, const HistoryScreen())),
+    _MenuItem(icon: Icons.location_on_outlined,       title: 'Saved Addresses',    subtitle: 'Home, work & more',        color: _C.green,   onTap: () => _push(context, const SavedAddressesScreen())),
+    _MenuItem(icon: Icons.account_balance_wallet_rounded, title: 'Earnings',       subtitle: 'Withdraw & analytics',     color: _C.accentB, onTap: () => _push(context, const EarningsScreen())),
+    _MenuItem(icon: Icons.notifications_none_rounded, title: 'Notifications',      subtitle: 'Alerts & preferences',     color: _C.accentA, onTap: () => _push(context, const NotificationsScreen())),
+    _MenuItem(icon: Icons.shield_outlined,            title: 'Privacy & Security', subtitle: 'Password & 2FA',           color: _C.accentC, onTap: () => _push(context, const PrivacySecurityScreen())),
+    _MenuItem(icon: Icons.help_outline_rounded,       title: 'Help & Support',     subtitle: 'FAQ & live chat',          color: _C.green,   onTap: () => _push(context, const HelpSupportScreen())),
+    _MenuItem(icon: Icons.settings_outlined,          title: 'Settings',           subtitle: 'App preferences',          color: _C.accentB, onTap: () => _push(context, const SettingsScreen())),
   ];
 
   void _push(BuildContext ctx, Widget screen) =>
@@ -150,10 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Scaffold(
       backgroundColor: _C.bg1,
       body: Stack(children: [
-        // Animated background
         _buildBackground(),
-
-        // Main scroll content
         CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
@@ -164,11 +160,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: SlideTransition(
                   position: _slideAnim,
                   child: Column(children: [
-                    const SizedBox(height: 20),
+                    // 70px gap = avatar radius (60) + 10px breathing room
+                    const SizedBox(height: 70),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(children: [
-                        _buildProfileCard(),
+                        _buildProfileCard(context),
                         const SizedBox(height: 24),
                         _buildStatsRow(),
                         const SizedBox(height: 28),
@@ -188,6 +185,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ],
         ),
+        // Avatar overlay: sits ON TOP of everything, never clipped
+        _buildFloatingAvatar(context),
       ]),
     );
   }
@@ -233,12 +232,19 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   // ── App Bar ───────────────────────────────────────────────────────────────
+  //
+  // PROFILE IMAGE STRATEGY:
+  // We use expandedHeight:160 so the header is shorter. The avatar (120px
+  // diameter) is NOT placed inside FlexibleSpaceBar (which clips overflow).
+  // Instead it is positioned as an overlay directly in the body Stack,
+  // sitting at the very top of the scrollable content area. This completely
+  // eliminates the clipping bug.
   SliverAppBar _buildAppBar(BuildContext context) {
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: 160,
       floating: false,
       pinned: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF0F1C35),
       elevation: 0,
       systemOverlayStyle: SystemUiOverlayStyle.light,
       leading: Navigator.of(context).canPop()
@@ -257,7 +263,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           : null,
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(fit: StackFit.expand, children: [
-          // Header gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -267,69 +272,31 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
           ),
-          // Grid overlay
           Positioned.fill(child: CustomPaint(painter: _GridPainter())),
-          // Top-right glow
           Positioned(
             top: -50, right: -50,
             child: Container(
-              width: 200, height: 200,
+              width: 180, height: 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [_C.blueGlow(0.12), Colors.transparent]),
+                gradient: RadialGradient(colors: [_C.blueGlow(0.14), Colors.transparent]),
               ),
             ),
           ),
-          // Bottom-left orange glow
           Positioned(
-            bottom: -30, left: -30,
+            bottom: 0, left: -20,
             child: Container(
-              width: 140, height: 140,
+              width: 120, height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(colors: [_C.orangeGlow(0.10), Colors.transparent]),
               ),
             ),
           ),
-          // Avatar — centred
+          // Bottom divider / fade
           Positioned(
-            bottom: -50, left: 0, right: 0,
-            child: Center(
-              child: Stack(alignment: Alignment.bottomRight, children: [
-                // Outer glow ring
-                AnimatedBuilder(
-                  animation: _pulseAnim,
-                  builder: (_, child) => Container(
-                    width: 116, height: 116,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(colors: [_C.accentA, _C.accentB]),
-                      boxShadow: [
-                        BoxShadow(color: _C.blueGlow(_pulseAnim.value * 0.45), blurRadius: 24 * _pulseAnim.value, spreadRadius: 2),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(3),
-                    child: child,
-                  ),
-                  child: const CircleAvatar(
-                    radius: 55,
-                    backgroundColor: Color(0xFF0F1C35),
-                    child: Icon(Icons.person_rounded, size: 52, color: Color(0xFF64748B)),
-                  ),
-                ),
-                // Camera badge
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [_C.accentA, _C.accentB]),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF020617), width: 2.5),
-                    boxShadow: [BoxShadow(color: _C.orangeGlow(0.5), blurRadius: 8, offset: const Offset(0, 3))],
-                  ),
-                  child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
-                ),
-              ]),
-            ),
+            bottom: 0, left: 0, right: 0,
+            child: Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
           ),
         ]),
       ),
@@ -345,14 +312,87 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  // Builds the floating avatar that overlays the boundary between appbar & body.
+  // Placed in the body Stack (not inside FlexibleSpaceBar) → never clipped.
+  // It floats at exactly: statusBarHeight + kToolbarHeight - avatarRadius
+  Widget _buildFloatingAvatar(BuildContext context) {
+    final statusH = MediaQuery.of(context).padding.top;
+    // Pin avatar so its centre is at the bottom edge of the collapsed appBar
+    final topOffset = statusH + kToolbarHeight - 60.0; // 60 = avatar radius
+    return Positioned(
+      top: topOffset,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Stack(alignment: Alignment.bottomRight, children: [
+          AnimatedBuilder(
+            animation: _pulseAnim,
+            builder: (_, child) => Container(
+              width: 120, height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(colors: [_C.accentA, _C.accentB]),
+                boxShadow: [
+                  BoxShadow(
+                    color: _C.blueGlow(_pulseAnim.value * 0.50),
+                    blurRadius: 28 * _pulseAnim.value,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(3),
+              child: child,
+            ),
+            child: _currentUser?.photoURL != null
+                ? CircleAvatar(
+                    radius: 57,
+                    backgroundImage: NetworkImage(_currentUser!.photoURL!),
+                  )
+                : const CircleAvatar(
+                    radius: 57,
+                    backgroundColor: Color(0xFF0F1C35),
+                    child: Icon(Icons.person_rounded, size: 54, color: Color(0xFF64748B)),
+                  ),
+          ),
+          // Camera badge
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Image upload coming soon!'),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: _C.accentA,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_C.accentA, _C.accentB]),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF020617), width: 2.5),
+                boxShadow: [BoxShadow(color: _C.orangeGlow(0.5), blurRadius: 8, offset: const Offset(0, 3))],
+              ),
+              child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
   // ── Profile Card ──────────────────────────────────────────────────────────
-  Widget _buildProfileCard() {
+  // top padding = 64 (half of avatar 120px) + 8px gap = 64 → leaves room
+  // for the avatar which overhangs from above.
+  Widget _buildProfileCard(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+          padding: const EdgeInsets.fromLTRB(24, 68, 24, 24),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: _C.glassBorder),
@@ -366,8 +406,11 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Column(children: [
             // Name + verified badge
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text(_userName,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _C.textPrimary, letterSpacing: -0.3)),
+              Flexible(
+                child: Text(_userName,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _C.textPrimary, letterSpacing: -0.3),
+                    overflow: TextOverflow.ellipsis),
+              ),
               const SizedBox(width: 8),
               if (_currentUser != null)
                 Container(
@@ -392,14 +435,34 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.alternate_email_rounded, size: 13, color: _C.accentA),
                 const SizedBox(width: 6),
-                Text(_userEmail,
-                    style: const TextStyle(fontSize: 13, color: _C.accentA, fontWeight: FontWeight.w600)),
+                Flexible(
+                  child: Text(_userEmail,
+                      style: const TextStyle(fontSize: 13, color: _C.accentA, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis),
+                ),
               ]),
             ),
-            const SizedBox(height: 10),
-            // Member since
-            Text('Member since $_joinedDate',
-                style: TextStyle(fontSize: 11.5, color: _C.textSec.withValues(alpha: 0.7), fontWeight: FontWeight.w400)),
+            const SizedBox(height: 16),
+            // Edit Profile button
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _push(context, const PersonalDetailsScreen());
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: LinearGradient(colors: [_C.accentA.withValues(alpha: 0.15), _C.accentC.withValues(alpha: 0.10)]),
+                  border: Border.all(color: _C.accentA.withValues(alpha: 0.25)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.edit_rounded, color: _C.accentA, size: 14),
+                  const SizedBox(width: 8),
+                  const Text('Edit Profile', style: TextStyle(color: _C.accentA, fontSize: 13, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ),
           ]),
         ),
       ),
@@ -409,16 +472,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   // ── Stats Row ─────────────────────────────────────────────────────────────
   Widget _buildStatsRow() {
     return Row(children: [
-      Expanded(child: _PremiumStatCard(value: '142',  label: 'Deliveries', icon: Icons.local_shipping_outlined, color: _C.accentA)),
+      Expanded(child: _PremiumStatCard(value: '142',    label: 'Deliveries', icon: Icons.local_shipping_outlined, color: _C.accentA)),
       const SizedBox(width: 10),
-      Expanded(child: _PremiumStatCard(value: '4.9★', label: 'Rating',     icon: Icons.star_outline_rounded,   color: _C.accentB)),
+      Expanded(child: _PremiumStatCard(value: '4.9★',  label: 'Rating',     icon: Icons.star_outline_rounded,   color: _C.accentB)),
       const SizedBox(width: 10),
-      Expanded(child: _PremiumStatCard(value: '2.4k', label: 'Points',     icon: Icons.wallet_rounded,         color: _C.accentC)),
+      Expanded(child: _PremiumStatCard(value: '₹24.8k',label: 'Earned',     icon: Icons.currency_rupee_rounded, color: _C.accentC)),
     ]);
   }
-
-  // Helper removed in favor of _PremiumStatCard stateful widget
-
 
   // ── Section label ─────────────────────────────────────────────────────────
   Widget _buildSectionLabel(String title) {
@@ -453,7 +513,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(children: [
-              // Icon box
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
@@ -464,7 +523,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: Icon(item.icon, color: item.color, size: 20),
               ),
               const SizedBox(width: 14),
-              // Text
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(item.title,
@@ -476,7 +534,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                       style: const TextStyle(fontSize: 11.5, color: _C.textSec, fontWeight: FontWeight.w400)),
                 ]),
               ),
-              // Arrow
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
@@ -541,10 +598,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: ElevatedButton(
                 onPressed: () {
                   FirebaseAuth.instance.signOut();
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (route) => false,
-                  );
+                  Navigator.of(context).popUntil((route) => route.isFirst);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
@@ -595,7 +649,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  GRID PAINTER — subtle dot grid overlay for header
+//  GRID PAINTER
 // ─────────────────────────────────────────────────────────────────────────────
 class _GridPainter extends CustomPainter {
   @override
@@ -615,7 +669,7 @@ class _GridPainter extends CustomPainter {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  PREMIUM STAT CARD — stateful for animations
+//  PREMIUM STAT CARD
 // ─────────────────────────────────────────────────────────────────────────────
 class _PremiumStatCard extends StatefulWidget {
   final String value, label;
@@ -675,10 +729,10 @@ class _PremiumStatCardState extends State<_PremiumStatCard> with SingleTickerPro
                 ),
                 const SizedBox(height: 10),
                 Text(widget.value,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: widget.color, height: 1)),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: widget.color, height: 1)),
                 const SizedBox(height: 3),
                 Text(widget.label,
-                    style: const TextStyle(fontSize: 10.5, color: _C.textSec, fontWeight: FontWeight.w500)),
+                    style: const TextStyle(fontSize: 10, color: _C.textSec, fontWeight: FontWeight.w500)),
               ]),
             ),
           ),
@@ -687,4 +741,3 @@ class _PremiumStatCardState extends State<_PremiumStatCard> with SingleTickerPro
     );
   }
 }
-

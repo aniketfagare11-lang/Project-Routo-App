@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+//import 'package:flutter/services.dart';
+import '../main.dart';
 import 'login_screen.dart';
 
 // ─────────────────────────────────────────────
@@ -126,10 +127,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigateToNext() {
     if (!mounted) return;
-    // ── Replace with your actual next screen ──
+    // ── Replace with AuthWrapper to use StreamBuilder ──
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const LoginScreen(),
+        pageBuilder: (_, __, ___) => const AuthWrapper(),
         transitionDuration: const Duration(milliseconds: 600),
         transitionsBuilder: (_, anim, __, child) {
           return FadeTransition(

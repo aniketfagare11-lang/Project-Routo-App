@@ -2,43 +2,45 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:routo_app/screens/home_screen.dart';
+import 'package:routo_app/screens/order_confirmed_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  DESIGN TOKENS — Synced with HomeScreen & Login dark palette
 // ─────────────────────────────────────────────────────────────────────────────
 class _C {
-  static const bg1   = Color(0xFF020617);
+  static const bg1 = Color(0xFF020617);
 
-  static const glass       = Color(0x14FFFFFF);
+  static const glass = Color(0x14FFFFFF);
   static const glassBorder = Color(0x20FFFFFF);
-  static const surfaceEl   = Color(0xFF131F38);
+  static const surfaceEl = Color(0xFF131F38);
 
   static const accentA = Color(0xFF3B82F6); // blue
   static const accentB = Color(0xFFF97316); // orange
   static const accentC = Color(0xFF8B5CF6); // purple
 
   static const green = Color(0xFF10B981);
-  static const red   = Color(0xFFEF4444);
-  static const cyan  = Color(0xFF06B6D4);
+  static const red = Color(0xFFEF4444);
+  static const cyan = Color(0xFF06B6D4);
 
   static const textPrimary = Color(0xFFF1F5F9);
-  static const textSec     = Color(0xFF64748B);
+  static const textSec = Color(0xFF64748B);
 
-  static Color blueGlow(double a)   => accentA.withValues(alpha: a);
+  static Color blueGlow(double a) => accentA.withValues(alpha: a);
   static Color orangeGlow(double a) => accentB.withValues(alpha: a);
   static Color purpleGlow(double a) => accentC.withValues(alpha: a);
-  static Color greenGlow(double a)  => green.withValues(alpha: a);
+  static Color greenGlow(double a) => green.withValues(alpha: a);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  PARCEL TYPES
 // ─────────────────────────────────────────────────────────────────────────────
 const _kParcelTypes = [
-  {'label': 'Package',     'emoji': '📦', 'color': 0xFF3B82F6},
-  {'label': 'Fragile',     'emoji': '🫙', 'color': 0xFFF97316},
-  {'label': 'Documents',   'emoji': '📄', 'color': 0xFF06B6D4},
+  {'label': 'Package', 'emoji': '📦', 'color': 0xFF3B82F6},
+  {'label': 'Fragile', 'emoji': '🫙', 'color': 0xFFF97316},
+  {'label': 'Documents', 'emoji': '📄', 'color': 0xFF06B6D4},
   {'label': 'Electronics', 'emoji': '💻', 'color': 0xFF8B5CF6},
-  {'label': 'Other',       'emoji': '✉️', 'color': 0xFF10B981},
+  {'label': 'Other', 'emoji': '✉️', 'color': 0xFF10B981},
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,30 +55,33 @@ class AddParcelScreen extends StatefulWidget {
 
 class _AddParcelScreenState extends State<AddParcelScreen>
     with TickerProviderStateMixin {
-
   // ── Controllers ──────────────────────────────────────────────────────────
-  final _originCtrl    = TextEditingController();
-  final _destCtrl      = TextEditingController();
-  final _dateCtrl      = TextEditingController();
-  final _weightCtrl    = TextEditingController();
-  final _priceCtrl     = TextEditingController();
-  final _notesCtrl     = TextEditingController();
+  final _originCtrl = TextEditingController();
+  final _destCtrl = TextEditingController();
+  final _dateCtrl = TextEditingController();
+  final _weightCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
+  final _landmarkCtrl = TextEditingController();
+  final _receiverPhoneCtrl = TextEditingController();
 
-  final _originFocus   = FocusNode();
-  final _destFocus     = FocusNode();
-  final _weightFocus   = FocusNode();
-  final _priceFocus    = FocusNode();
+  final _originFocus = FocusNode();
+  final _destFocus = FocusNode();
+  final _weightFocus = FocusNode();
+  final _priceFocus = FocusNode();
+  final _landmarkFocus = FocusNode();
+  final _receiverPhoneFocus = FocusNode();
 
   // ── State ─────────────────────────────────────────────────────────────────
   String? _originError;
   String? _destError;
   String? _dateError;
   String? _weightError;
-  bool _isLoading        = false;
-  bool _isSuccess        = false;
-  bool _isFetchingLoc    = false;
+  bool _isLoading = false;
+  bool _isSuccess = false;
+  bool _isFetchingLoc = false;
   bool _isPriceSuggested = true;
-  int  _selectedType     = 0;
+  int _selectedType = 0;
 
   // ── Animations ────────────────────────────────────────────────────────────
   late AnimationController _fadeCtrl;
@@ -85,35 +90,43 @@ class _AddParcelScreenState extends State<AddParcelScreen>
   late AnimationController _btnCtrl;
   late AnimationController _bgCtrl;
 
-  late Animation<double>  _fadeAnim;
-  late Animation<Offset>  _slideAnim;
-  late Animation<double>  _successAnim;
-  late Animation<double>  _btnScale;
-  late Animation<double>  _bgAnim;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
+  late Animation<double> _successAnim;
+  late Animation<double> _btnScale;
+  late Animation<double> _bgAnim;
 
   @override
   void initState() {
     super.initState();
 
-    _fadeCtrl    = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _slideCtrl   = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
-    _successCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
-    _btnCtrl     = AnimationController(vsync: this, duration: const Duration(milliseconds: 120));
-    _bgCtrl      = AnimationController(vsync: this, duration: const Duration(seconds: 16))..repeat();
+    _fadeCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800));
+    _slideCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _successCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 650));
+    _btnCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 120));
+    _bgCtrl =
+        AnimationController(vsync: this, duration: const Duration(seconds: 16))
+          ..repeat();
 
-    _fadeAnim    = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
-    _slideAnim   = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
-    _successAnim = CurvedAnimation(parent: _successCtrl, curve: Curves.elasticOut);
-    _btnScale    = Tween<double>(begin: 1.0, end: 0.96)
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(
+            CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
+    _successAnim =
+        CurvedAnimation(parent: _successCtrl, curve: Curves.elasticOut);
+    _btnScale = Tween<double>(begin: 1.0, end: 0.96)
         .animate(CurvedAnimation(parent: _btnCtrl, curve: Curves.easeInOut));
-    _bgAnim      = CurvedAnimation(parent: _bgCtrl, curve: Curves.linear);
+    _bgAnim = CurvedAnimation(parent: _bgCtrl, curve: Curves.linear);
 
     _fadeCtrl.forward();
     _slideCtrl.forward();
 
     _weightCtrl.addListener(_onWeightChanged);
-    for (final fn in [_originFocus, _destFocus, _weightFocus, _priceFocus]) {
+    for (final fn in [_originFocus, _destFocus, _weightFocus, _priceFocus, _landmarkFocus, _receiverPhoneFocus]) {
       fn.addListener(() => setState(() {}));
     }
   }
@@ -121,7 +134,11 @@ class _AddParcelScreenState extends State<AddParcelScreen>
   void _onWeightChanged() {
     final w = double.tryParse(_weightCtrl.text);
     if (w != null) {
-      final suggested = w < 2 ? '₹100' : w <= 5 ? '₹200' : '₹350';
+      final suggested = w < 2
+          ? '₹100'
+          : w <= 5
+              ? '₹200'
+              : '₹350';
       if (_priceCtrl.text.isEmpty || _isPriceSuggested) {
         _priceCtrl.text = suggested;
         _isPriceSuggested = true;
@@ -131,10 +148,19 @@ class _AddParcelScreenState extends State<AddParcelScreen>
 
   @override
   void dispose() {
-    for (final c in [_originCtrl, _destCtrl, _dateCtrl, _weightCtrl, _priceCtrl, _notesCtrl]) {
+    for (final c in [
+      _originCtrl,
+      _destCtrl,
+      _dateCtrl,
+      _weightCtrl,
+      _priceCtrl,
+      _notesCtrl,
+      _landmarkCtrl,
+      _receiverPhoneCtrl,
+    ]) {
       c.dispose();
     }
-    for (final f in [_originFocus, _destFocus, _weightFocus, _priceFocus]) {
+    for (final f in [_originFocus, _destFocus, _weightFocus, _priceFocus, _landmarkFocus, _receiverPhoneFocus]) {
       f.dispose();
     }
     for (final a in [_fadeCtrl, _slideCtrl, _successCtrl, _btnCtrl, _bgCtrl]) {
@@ -173,7 +199,8 @@ class _AddParcelScreenState extends State<AddParcelScreen>
             onSurface: Colors.white,
           ),
           dialogTheme: DialogThemeData(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           ),
         ),
         child: child!,
@@ -190,12 +217,21 @@ class _AddParcelScreenState extends State<AddParcelScreen>
 
   bool _validate() {
     setState(() {
-      _originError = _originCtrl.text.trim().isEmpty ? 'Please enter a collection point' : null;
-      _destError   = _destCtrl.text.trim().isEmpty   ? 'Please enter a delivery address' : null;
-      _dateError   = _dateCtrl.text.trim().isEmpty   ? 'Select a collection date' : null;
-      _weightError = _weightCtrl.text.trim().isEmpty ? 'Enter parcel weight in kg' : null;
+      _originError = _originCtrl.text.trim().isEmpty
+          ? 'Please enter a collection point'
+          : null;
+      _destError = _destCtrl.text.trim().isEmpty
+          ? 'Please enter a delivery address'
+          : null;
+      _dateError =
+          _dateCtrl.text.trim().isEmpty ? 'Select a collection date' : null;
+      _weightError =
+          _weightCtrl.text.trim().isEmpty ? 'Enter parcel weight in kg' : null;
     });
-    return _originError == null && _destError == null && _dateError == null && _weightError == null;
+    return _originError == null &&
+        _destError == null &&
+        _dateError == null &&
+        _weightError == null;
   }
 
   Future<void> _submit() async {
@@ -206,11 +242,30 @@ class _AddParcelScreenState extends State<AddParcelScreen>
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
-      setState(() { _isLoading = false; _isSuccess = true; });
+      setState(() {
+        _isLoading = false;
+        _isSuccess = true;
+      });
       _successCtrl.forward();
       HapticFeedback.heavyImpact();
-      await Future.delayed(const Duration(milliseconds: 2000));
-      if (mounted) Navigator.of(context).pop();
+      await Future.delayed(const Duration(milliseconds: 1200));
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (_, a, b) => OrderConfirmedScreen(
+              pickupAddress: _originCtrl.text,
+              deliveryAddress: _destCtrl.text,
+              parcelType: _selectedType.toString(),
+              weight: _weightCtrl.text,
+              price: _priceCtrl.text,
+              date: _dateCtrl.text,
+            ),
+            transitionsBuilder: (_, a, __, child) =>
+                FadeTransition(opacity: a, child: child),
+            transitionDuration: const Duration(milliseconds: 500),
+          ),
+        );
+      }
     }
   }
 
@@ -277,7 +332,8 @@ class _AddParcelScreenState extends State<AddParcelScreen>
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: _C.glassBorder),
           ),
-          child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
+          child: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white, size: 16),
         ),
       ),
     );
@@ -295,25 +351,46 @@ class _AddParcelScreenState extends State<AddParcelScreen>
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF0F172A), Color(0xFF020617), Color(0xFF0C1220)],
+                colors: [
+                  Color(0xFF0F172A),
+                  Color(0xFF020617),
+                  Color(0xFF0C1220)
+                ],
                 stops: [0.0, 0.55, 1.0],
               ),
             ),
           ),
-          _orb(x: 0.12 + 0.07 * math.cos(t),       y: 0.10 + 0.05 * math.sin(t),       size: 260, color: _C.blueGlow(0.09)),
-          _orb(x: 0.82 + 0.05 * math.cos(t + 2.0), y: 0.32 + 0.06 * math.sin(t + 2.0), size: 200, color: _C.orangeGlow(0.07)),
-          _orb(x: 0.45 + 0.06 * math.cos(t + 4.1), y: 0.72 + 0.04 * math.sin(t + 4.1), size: 170, color: _C.purpleGlow(0.06)),
+          _orb(
+              x: 0.12 + 0.07 * math.cos(t),
+              y: 0.10 + 0.05 * math.sin(t),
+              size: 260,
+              color: _C.blueGlow(0.09)),
+          _orb(
+              x: 0.82 + 0.05 * math.cos(t + 2.0),
+              y: 0.32 + 0.06 * math.sin(t + 2.0),
+              size: 200,
+              color: _C.orangeGlow(0.07)),
+          _orb(
+              x: 0.45 + 0.06 * math.cos(t + 4.1),
+              y: 0.72 + 0.04 * math.sin(t + 4.1),
+              size: 170,
+              color: _C.purpleGlow(0.06)),
         ]);
       },
     );
   }
 
-  Widget _orb({required double x, required double y, required double size, required Color color}) {
+  Widget _orb(
+      {required double x,
+      required double y,
+      required double size,
+      required Color color}) {
     return Positioned.fill(
       child: Align(
         alignment: Alignment(x * 2 - 1, y * 2 - 1),
         child: Container(
-          width: size, height: size,
+          width: size,
+          height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(colors: [color, Colors.transparent]),
@@ -327,7 +404,8 @@ class _AddParcelScreenState extends State<AddParcelScreen>
   Widget _buildHeroHeader() {
     return Row(children: [
       Container(
-        width: 52, height: 52,
+        width: 52,
+        height: 52,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: const LinearGradient(
@@ -335,23 +413,37 @@ class _AddParcelScreenState extends State<AddParcelScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          boxShadow: [BoxShadow(color: _C.blueGlow(0.4), blurRadius: 16, offset: const Offset(0, 6))],
+          boxShadow: [
+            BoxShadow(
+                color: _C.blueGlow(0.4),
+                blurRadius: 16,
+                offset: const Offset(0, 6))
+          ],
         ),
         child: const Center(child: Text('📦', style: TextStyle(fontSize: 24))),
       ),
       const SizedBox(width: 16),
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        ShaderMask(
-          shaderCallback: (b) => const LinearGradient(
-            colors: [_C.textPrimary, Color(0xFF93C5FD)],
-          ).createShader(b),
-          child: const Text('Book a Delivery',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.3)),
-        ),
-        const SizedBox(height: 3),
-        const Text('Fill in the details to send your parcel',
-            style: TextStyle(fontSize: 13, color: _C.textSec, fontWeight: FontWeight.w400)),
-      ]),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          ShaderMask(
+            shaderCallback: (b) => const LinearGradient(
+              colors: [_C.textPrimary, Color(0xFF93C5FD)],
+            ).createShader(b),
+            child: const Text('Book a Delivery',
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: -0.3),
+                overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(height: 3),
+          const Text('Fill in the details to send your parcel',
+              style: TextStyle(
+                  fontSize: 13, color: _C.textSec, fontWeight: FontWeight.w400),
+              overflow: TextOverflow.ellipsis),
+        ]),
+      ),
     ]);
   }
 
@@ -362,7 +454,10 @@ class _AddParcelScreenState extends State<AddParcelScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(icon: Icons.local_shipping_rounded, title: 'Pickup & Delivery', color: _C.accentA),
+          const _SectionHeader(
+              icon: Icons.local_shipping_rounded,
+              title: 'Pickup & Delivery',
+              color: _C.accentA),
           const SizedBox(height: 20),
           // Pickup Address
           _buildInput(
@@ -375,22 +470,37 @@ class _AddParcelScreenState extends State<AddParcelScreen>
             error: _originError,
             suffix: _isFetchingLoc
                 ? const SizedBox(
-                    width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: _C.accentA),
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: _C.accentA),
                   )
                 : GestureDetector(
                     onTap: _fetchLocation,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [_C.accentA, _C.accentC]),
+                        gradient: const LinearGradient(
+                            colors: [_C.accentA, _C.accentC]),
                         borderRadius: BorderRadius.circular(10),
-                        boxShadow: [BoxShadow(color: _C.blueGlow(0.4), blurRadius: 10, offset: const Offset(0, 3))],
+                        boxShadow: [
+                          BoxShadow(
+                              color: _C.blueGlow(0.4),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3))
+                        ],
                       ),
-                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.gps_fixed_rounded, color: Colors.white, size: 12),
+                      child:
+                          const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.gps_fixed_rounded,
+                            color: Colors.white, size: 12),
                         SizedBox(width: 4),
-                        Text('GPS', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                        Text('GPS',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700)),
                       ]),
                     ),
                   ),
@@ -400,14 +510,17 @@ class _AddParcelScreenState extends State<AddParcelScreen>
           Padding(
             padding: const EdgeInsets.only(left: 20, top: 8, bottom: 8),
             child: Column(
-              children: List.generate(3, (_) => Container(
-                width: 2, height: 5,
-                margin: const EdgeInsets.only(bottom: 3),
-                decoration: BoxDecoration(
-                  color: _C.textSec.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              )),
+              children: List.generate(
+                  3,
+                  (_) => Container(
+                        width: 2,
+                        height: 5,
+                        margin: const EdgeInsets.only(bottom: 3),
+                        decoration: BoxDecoration(
+                          color: _C.textSec.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      )),
             ),
           ),
 
@@ -436,16 +549,45 @@ class _AddParcelScreenState extends State<AddParcelScreen>
                 Icon(Icons.straighten_rounded, color: _C.accentA, size: 14),
                 SizedBox(width: 8),
                 Text('Estimated delivery: ~2h 30m  ·  149 km',
-                    style: TextStyle(color: _C.textSec, fontSize: 12, fontWeight: FontWeight.w500)),
+                    style: TextStyle(
+                        color: _C.textSec,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
                 Spacer(),
-                Text('₹120 base', style: TextStyle(color: _C.accentB, fontSize: 12, fontWeight: FontWeight.w700)),
+                Text('₹120 base',
+                    style: TextStyle(
+                        color: _C.accentB,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
               ]),
             ),
           ],
+          const SizedBox(height: 14),
+          // Landmark (optional)
+          _buildInput(
+            controller: _landmarkCtrl,
+            focusNode: _landmarkFocus,
+            label: 'Landmark (Optional)',
+            hint: 'e.g. Near Pune Railway Station',
+            icon: Icons.place_outlined,
+            focusColor: _C.accentC,
+          ),
+          const SizedBox(height: 14),
+          // Receiver Phone Number
+          _buildInput(
+            controller: _receiverPhoneCtrl,
+            focusNode: _receiverPhoneFocus,
+            label: 'Receiver Phone Number',
+            hint: '+91 98765 43210',
+            icon: Icons.phone_outlined,
+            focusColor: _C.green,
+            keyboardType: TextInputType.phone,
+          ),
         ],
       ),
     );
   }
+
 
   // ── Parcel Type Card ──────────────────────────────────────────────────────
   Widget _buildParcelTypeCard() {
@@ -454,7 +596,10 @@ class _AddParcelScreenState extends State<AddParcelScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(icon: Icons.category_rounded, title: 'Parcel Type', color: _C.accentC),
+          const _SectionHeader(
+              icon: Icons.category_rounded,
+              title: 'Parcel Type',
+              color: _C.accentC),
           const SizedBox(height: 18),
           SizedBox(
             height: 96,
@@ -465,7 +610,7 @@ class _AddParcelScreenState extends State<AddParcelScreen>
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (_, i) {
                 final t = _kParcelTypes[i];
-                final color   = Color(t['color'] as int);
+                final color = Color(t['color'] as int);
                 final selected = _selectedType == i;
                 return GestureDetector(
                   onTap: () {
@@ -477,28 +622,40 @@ class _AddParcelScreenState extends State<AddParcelScreen>
                     curve: Curves.easeOutCubic,
                     width: 76,
                     decoration: BoxDecoration(
-                      color: selected ? color.withValues(alpha: 0.15) : _C.glass,
+                      color:
+                          selected ? color.withValues(alpha: 0.15) : _C.glass,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: selected ? color.withValues(alpha: 0.7) : _C.glassBorder,
+                        color: selected
+                            ? color.withValues(alpha: 0.7)
+                            : _C.glassBorder,
                         width: selected ? 1.5 : 1.0,
                       ),
                       boxShadow: selected
-                          ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 16, spreadRadius: 0)]
+                          ? [
+                              BoxShadow(
+                                  color: color.withValues(alpha: 0.3),
+                                  blurRadius: 16,
+                                  spreadRadius: 0)
+                            ]
                           : [],
                     ),
-                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Text(t['emoji'] as String, style: const TextStyle(fontSize: 22)),
-                      const SizedBox(height: 6),
-                      Text(
-                        t['label'] as String,
-                        style: TextStyle(
-                          color: selected ? color : _C.textSec,
-                          fontSize: 10.5,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                        ),
-                      ),
-                    ]),
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(t['emoji'] as String,
+                              style: const TextStyle(fontSize: 22)),
+                          const SizedBox(height: 6),
+                          Text(
+                            t['label'] as String,
+                            style: TextStyle(
+                              color: selected ? color : _C.textSec,
+                              fontSize: 10.5,
+                              fontWeight:
+                                  selected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                        ]),
                   ),
                 );
               },
@@ -514,7 +671,10 @@ class _AddParcelScreenState extends State<AddParcelScreen>
     return _GlassCard(
       accentColor: _C.accentB,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _SectionHeader(icon: Icons.inventory_2_rounded, title: 'Parcel Details', color: _C.accentB),
+        const _SectionHeader(
+            icon: Icons.inventory_2_rounded,
+            title: 'Parcel Details',
+            color: _C.accentB),
         const SizedBox(height: 20),
 
         // Weight + Price row
@@ -528,12 +688,14 @@ class _AddParcelScreenState extends State<AddParcelScreen>
               icon: Icons.monitor_weight_outlined,
               focusColor: _C.accentA,
               error: _weightError,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
             ),
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               _buildInput(
                 controller: _priceCtrl,
                 focusNode: _priceFocus,
@@ -548,10 +710,14 @@ class _AddParcelScreenState extends State<AddParcelScreen>
                 Padding(
                   padding: const EdgeInsets.only(top: 5, left: 4),
                   child: Row(children: [
-                    const Icon(Icons.auto_awesome_rounded, size: 10, color: _C.green),
+                    const Icon(Icons.auto_awesome_rounded,
+                        size: 10, color: _C.green),
                     const SizedBox(width: 4),
                     Text('AI suggested',
-                        style: TextStyle(color: _C.green.withValues(alpha: 0.85), fontSize: 10, fontWeight: FontWeight.w600)),
+                        style: TextStyle(
+                            color: _C.green.withValues(alpha: 0.85),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600)),
                   ]),
                 ),
             ]),
@@ -579,7 +745,10 @@ class _AddParcelScreenState extends State<AddParcelScreen>
     return _GlassCard(
       accentColor: _C.green,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _SectionHeader(icon: Icons.sticky_note_2_outlined, title: 'Special Instructions', color: _C.green),
+        const _SectionHeader(
+            icon: Icons.sticky_note_2_outlined,
+            title: 'Special Instructions',
+            color: _C.green),
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
@@ -590,15 +759,21 @@ class _AddParcelScreenState extends State<AddParcelScreen>
           child: TextField(
             controller: _notesCtrl,
             maxLines: 3,
-            style: const TextStyle(color: _C.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+                color: _C.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500),
             decoration: InputDecoration(
               hintText: 'e.g. Handle with care, leave at reception…',
-              hintStyle: TextStyle(color: _C.textSec.withValues(alpha: 0.7), fontSize: 13),
+              hintStyle: TextStyle(
+                  color: _C.textSec.withValues(alpha: 0.7), fontSize: 13),
               prefixIcon: Padding(
                 padding: const EdgeInsets.only(left: 14, right: 10, top: 14),
-                child: Icon(Icons.edit_note_rounded, color: _C.textSec, size: 20),
+                child:
+                    Icon(Icons.edit_note_rounded, color: _C.textSec, size: 20),
               ),
-              prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+              prefixIconConstraints:
+                  const BoxConstraints(minWidth: 0, minHeight: 0),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
             ),
@@ -624,23 +799,39 @@ class _AddParcelScreenState extends State<AddParcelScreen>
               end: Alignment.centerRight,
             ),
             boxShadow: [
-              BoxShadow(color: _C.blueGlow(0.45), blurRadius: 28, offset: const Offset(0, 8), spreadRadius: -2),
-              BoxShadow(color: _C.orangeGlow(0.20), blurRadius: 20, offset: const Offset(8, 8), spreadRadius: -4),
+              BoxShadow(
+                  color: _C.blueGlow(0.45),
+                  blurRadius: 28,
+                  offset: const Offset(0, 8),
+                  spreadRadius: -2),
+              BoxShadow(
+                  color: _C.orangeGlow(0.20),
+                  blurRadius: 20,
+                  offset: const Offset(8, 8),
+                  spreadRadius: -4),
             ],
           ),
           child: Center(
             child: _isLoading
                 ? const SizedBox(
-                    width: 26, height: 26,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    width: 26,
+                    height: 26,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2.5),
                   )
                 : const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 20),
+                    Icon(Icons.rocket_launch_rounded,
+                        color: Colors.white, size: 20),
                     SizedBox(width: 10),
                     Text('Confirm Booking',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3)),
                     SizedBox(width: 8),
-                    Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                    Icon(Icons.arrow_forward_rounded,
+                        color: Colors.white, size: 18),
                   ]),
           ),
         ),
@@ -652,7 +843,10 @@ class _AddParcelScreenState extends State<AddParcelScreen>
     return Center(
       child: Text(
         '🔒  Your parcel details are encrypted and secure',
-        style: TextStyle(color: _C.textSec.withValues(alpha: 0.7), fontSize: 11.5, fontWeight: FontWeight.w400),
+        style: TextStyle(
+            color: _C.textSec.withValues(alpha: 0.7),
+            fontSize: 11.5,
+            fontWeight: FontWeight.w400),
       ),
     );
   }
@@ -675,8 +869,14 @@ class _AddParcelScreenState extends State<AddParcelScreen>
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(color: _C.green.withValues(alpha: 0.4)),
                   boxShadow: [
-                    BoxShadow(color: _C.greenGlow(0.25), blurRadius: 48, spreadRadius: 4),
-                    BoxShadow(color: _C.blueGlow(0.12), blurRadius: 60, spreadRadius: 8),
+                    BoxShadow(
+                        color: _C.greenGlow(0.25),
+                        blurRadius: 48,
+                        spreadRadius: 4),
+                    BoxShadow(
+                        color: _C.blueGlow(0.12),
+                        blurRadius: 60,
+                        spreadRadius: 8),
                   ],
                 ),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -685,26 +885,44 @@ class _AddParcelScreenState extends State<AddParcelScreen>
                     decoration: BoxDecoration(
                       color: _C.green.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: _C.greenGlow(0.3), blurRadius: 24, spreadRadius: 2)],
+                      boxShadow: [
+                        BoxShadow(
+                            color: _C.greenGlow(0.3),
+                            blurRadius: 24,
+                            spreadRadius: 2)
+                      ],
                     ),
-                    child: const Icon(Icons.check_rounded, color: _C.green, size: 44),
+                    child: const Icon(Icons.check_rounded,
+                        color: _C.green, size: 44),
                   ),
                   const SizedBox(height: 22),
                   const Text('Booking Confirmed!',
-                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800)),
                   const SizedBox(height: 10),
                   Text(
                     'Your parcel has been booked\nsuccessfully. Track it in My Deliveries.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14, height: 1.6),
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 14,
+                        height: 1.6),
                   ),
                   const SizedBox(height: 28),
                   Container(
                     height: 50,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
-                      gradient: const LinearGradient(colors: [_C.accentA, _C.accentB]),
-                      boxShadow: [BoxShadow(color: _C.blueGlow(0.4), blurRadius: 16, offset: const Offset(0, 6))],
+                      gradient: const LinearGradient(
+                          colors: [_C.accentA, _C.accentB]),
+                      boxShadow: [
+                        BoxShadow(
+                            color: _C.blueGlow(0.4),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6))
+                      ],
                     ),
                     child: Material(
                       color: Colors.transparent,
@@ -716,7 +934,10 @@ class _AddParcelScreenState extends State<AddParcelScreen>
                         },
                         child: const Center(
                           child: Text('Back to Home',
-                              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700)),
                         ),
                       ),
                     ),
@@ -745,7 +966,7 @@ class _AddParcelScreenState extends State<AddParcelScreen>
     String? error,
     ValueChanged<String>? onChanged,
   }) {
-    final focused  = focusNode?.hasFocus ?? false;
+    final focused = focusNode?.hasFocus ?? false;
     final hasError = error != null;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -753,7 +974,9 @@ class _AddParcelScreenState extends State<AddParcelScreen>
         duration: const Duration(milliseconds: 200),
         style: TextStyle(
           color: focused ? focusColor : _C.textSec,
-          fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
         ),
         child: Text(label.toUpperCase()),
       ),
@@ -772,9 +995,15 @@ class _AddParcelScreenState extends State<AddParcelScreen>
             width: focused ? 1.5 : 1.0,
           ),
           boxShadow: focused
-              ? [BoxShadow(color: focusColor.withValues(alpha: 0.2), blurRadius: 16)]
+              ? [
+                  BoxShadow(
+                      color: focusColor.withValues(alpha: 0.2), blurRadius: 16)
+                ]
               : hasError
-                  ? [BoxShadow(color: _C.red.withValues(alpha: 0.12), blurRadius: 10)]
+                  ? [
+                      BoxShadow(
+                          color: _C.red.withValues(alpha: 0.12), blurRadius: 10)
+                    ]
                   : [],
         ),
         child: TextField(
@@ -784,17 +1013,25 @@ class _AddParcelScreenState extends State<AddParcelScreen>
           readOnly: readOnly,
           onTap: onTap,
           onChanged: onChanged,
-          style: const TextStyle(color: _C.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+              color: _C.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: _C.textSec.withValues(alpha: 0.6), fontSize: 13.5, fontWeight: FontWeight.w400),
-            prefixIcon: Icon(icon, color: focused ? focusColor : _C.textSec, size: 18),
+            hintStyle: TextStyle(
+                color: _C.textSec.withValues(alpha: 0.6),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w400),
+            prefixIcon:
+                Icon(icon, color: focused ? focusColor : _C.textSec, size: 18),
             suffixIcon: suffix != null
-                ? Padding(padding: const EdgeInsets.only(right: 10), child: suffix)
+                ? Padding(
+                    padding: const EdgeInsets.only(right: 10), child: suffix)
                 : null,
-            suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+            suffixIconConstraints:
+                const BoxConstraints(minWidth: 0, minHeight: 0),
             border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
           ),
         ),
       ),
@@ -804,7 +1041,9 @@ class _AddParcelScreenState extends State<AddParcelScreen>
           child: Row(children: [
             const Icon(Icons.error_outline_rounded, size: 12, color: _C.red),
             const SizedBox(width: 4),
-            Text(error, style: const TextStyle(color: _C.red, fontSize: 11, fontWeight: FontWeight.w600)),
+            Text(error,
+                style: const TextStyle(
+                    color: _C.red, fontSize: 11, fontWeight: FontWeight.w600)),
           ]),
         ),
     ]);
@@ -854,7 +1093,8 @@ class _SectionHeader extends StatelessWidget {
   final IconData icon;
   final String title;
   final Color color;
-  const _SectionHeader({required this.icon, required this.title, required this.color});
+  const _SectionHeader(
+      {required this.icon, required this.title, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -871,7 +1111,10 @@ class _SectionHeader extends StatelessWidget {
       const SizedBox(width: 12),
       Text(title,
           style: const TextStyle(
-              color: _C.textPrimary, fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.1)),
+              color: _C.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.1)),
     ]);
   }
 }
