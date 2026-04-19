@@ -14,6 +14,7 @@ import 'package:lottie/lottie.dart';
 
 import 'add_parcel_screen.dart';
 import 'parcel_details_screen.dart';
+import 'profile_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  DESIGN TOKENS
@@ -350,10 +351,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       required double y,
       required double size,
       required Color color}) {
-    return LayoutBuilder(builder: (ctx, c) {
-      return Positioned(
-        left: c.maxWidth * x - size / 2,
-        top: c.maxHeight * y - size / 2,
+    return Positioned.fill(
+      child: Align(
+        alignment: Alignment(x * 2 - 1, y * 2 - 1),
         child: Container(
           width: size,
           height: size,
@@ -362,8 +362,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             gradient: RadialGradient(colors: [color, Colors.transparent]),
           ),
         ),
-      );
-    });
+      ),
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -526,17 +526,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildAvatarButton() {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(colors: [_C.accentA, _C.accentC]),
-        border: Border.all(color: _C.glassBorder, width: 2),
-        boxShadow: [BoxShadow(color: _C.blueGlow(0.4), blurRadius: 12)],
-      ),
-      child: const Center(
-        child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(_slideRoute(const ProfileScreen())),
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(colors: [_C.accentA, _C.accentC]),
+          border: Border.all(color: _C.glassBorder, width: 2),
+          boxShadow: [BoxShadow(color: _C.blueGlow(0.4), blurRadius: 12)],
+        ),
+        child: const Center(
+          child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
+        ),
       ),
     );
   }
@@ -677,7 +680,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(height: 10),
         Text(
           'Send or deliver parcels with ease.',
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 14.5,
             color: _C.textSec,
             fontWeight: FontWeight.w400,
@@ -742,7 +745,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       const SizedBox(height: 4),
       Text(
         'Send or deliver parcels with ease',
-        style: TextStyle(
+        style: const TextStyle(
             fontSize: 13, color: _C.textSec, fontWeight: FontWeight.w400),
       ),
       const SizedBox(height: 14),
@@ -1719,8 +1722,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       1, Icons.map_rounded, Icons.map_outlined, 'Map'),
                   _buildNavItem(2, Icons.insights_rounded,
                       Icons.insights_outlined, 'Analytics'),
-                  _buildNavItem(3, Icons.person_rounded,
-                      Icons.person_outline_rounded, 'Profile'),
                 ],
               ),
             ),

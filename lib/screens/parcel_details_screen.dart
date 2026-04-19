@@ -7,20 +7,14 @@ import 'package:flutter/services.dart';
 //  DESIGN TOKENS (Synced with HomeScreen)
 // ─────────────────────────────────────────────────────────────────────────────
 class _C {
-  static const bg0 = Color(0xFF0F172A);
   static const bg1 = Color(0xFF020617);
   static const glass = Color(0x14FFFFFF);
   static const glassBorder = Color(0x20FFFFFF);
-  static const surface = Color(0xFF0F1C35);
-  static const surfaceEl = Color(0xFF131F38);
   static const accentA = Color(0xFF3B82F6);
   static const accentB = Color(0xFFF97316);
   static const accentC = Color(0xFF8B5CF6);
   static const green = Color(0xFF10B981);
-  static const textPrimary = Color(0xFFF1F5F9);
   static const textSec = Color(0xFF64748B);
-  static Color blueGlow(double a) => accentA.withValues(alpha: a);
-  static Color orangeGlow(double a) => accentB.withValues(alpha: a);
 }
 
 class ParcelDetailsScreen extends StatefulWidget {
@@ -298,8 +292,8 @@ class _ParcelDetailsScreenState extends State<ParcelDetailsScreen>
               position: _slideAnim,
               child: SafeArea(
                 child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+                  physics: BouncingScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(20, 8, 20, 120),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -406,10 +400,9 @@ class _ParcelDetailsScreenState extends State<ParcelDetailsScreen>
   }
 
   Widget _orb({required double x, required double y, required double size, required Color color}) {
-    return LayoutBuilder(builder: (ctx, c) {
-      return Positioned(
-        left: c.maxWidth * x - size / 2,
-        top: c.maxHeight * y - size / 2,
+    return Positioned.fill(
+      child: Align(
+        alignment: Alignment(x * 2 - 1, y * 2 - 1),
         child: Container(
           width: size,
           height: size,
@@ -418,8 +411,8 @@ class _ParcelDetailsScreenState extends State<ParcelDetailsScreen>
             gradient: RadialGradient(colors: [color, Colors.transparent]),
           ),
         ),
-      );
-    });
+      ),
+    );
   }
 
   // ── Route Summary Card ────────────────────────────────────────────────────
@@ -808,10 +801,10 @@ class _ParcelDetailsScreenState extends State<ParcelDetailsScreen>
           child: Container(
             padding: EdgeInsets.fromLTRB(
                 20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
-            decoration: BoxDecoration(
-              color: const Color(0x22FFFFFF),
+            decoration: const BoxDecoration(
+              color: Color(0x14FFFFFF),
               borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(28)),
+                  BorderRadius.vertical(top: Radius.circular(28)),
               border: Border(top: BorderSide(color: _C.glassBorder, width: 1)),
             ),
             child: GestureDetector(
