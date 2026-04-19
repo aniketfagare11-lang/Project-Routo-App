@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'home_screen.dart';
+//import 'home_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SIGNUP SCREEN  ·  Web + Android compatible
