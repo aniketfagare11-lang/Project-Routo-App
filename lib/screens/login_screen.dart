@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'signup_screen.dart';
 //import 'home_screen.dart';
 
@@ -153,6 +154,33 @@ class _LoginScreenState extends State<LoginScreen>
       _showError(message);
     } catch (e) {
       _showError('An unexpected error occurred. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ─── Google Sign-In ───────────────────────────────────────────────
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        setState(() => _isLoading = false);
+        return; // User canceled the sign-in
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      // Navigation is handled by the StreamBuilder in main.dart
+    } catch (e) {
+      _showError('Google Sign-In failed: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -522,7 +550,7 @@ class _LoginScreenState extends State<LoginScreen>
       shadowColor: Colors.black.withValues(alpha: 0.08),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () {},
+        onTap: _isLoading ? null : _handleGoogleSignIn,
         splashColor: const Color(0xFFE8F0FE),
         highlightColor: const Color(0xFFF0F4FF),
         child: Container(
@@ -588,7 +616,11 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: () {},
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const PhoneLoginScreen()),
+          );
+        },
           splashColor: Colors.white.withValues(alpha: 0.15),
           highlightColor: Colors.white.withValues(alpha: 0.05),
           child: const Row(

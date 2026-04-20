@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 //import 'home_screen.dart';
@@ -291,9 +292,10 @@ class _SignupScreenState extends State<SignupScreen>
       await user.updateDisplayName(_nameCtrl.text.trim());
 
       // Step 3 — Link phone credential if OTP was completed.
-      final otp = _otpCtrl.text.trim();
-      if (_otpSent && otp.isNotEmpty) {
-        await _linkPhoneCredential(user, otp);
+      final otpVal = _otpCtrl.text.trim();
+      if ((_verificationId != null || _webConfirmationResult != null) &&
+          otpVal.isNotEmpty) {
+        await _linkPhoneCredential(user, otpVal);
       }
 
       // Step 4 — Pop back to root so AuthWrapper can navigate to Home.
@@ -358,6 +360,10 @@ class _SignupScreenState extends State<SignupScreen>
       default:
         return rawMessage ?? 'Sign-up failed. Please try again.';
     }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    // TODO: Implement Google Sign In
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -795,7 +801,7 @@ class _SignupScreenState extends State<SignupScreen>
       shadowColor: Colors.black.withValues(alpha: 0.08),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () {},
+        onTap: _isLoading ? null : _handleGoogleSignIn,
         splashColor: const Color(0xFFE8F0FE),
         highlightColor: const Color(0xFFF0F4FF),
         child: Container(
