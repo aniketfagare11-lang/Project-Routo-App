@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'home_screen.dart';
@@ -209,71 +210,82 @@ class _SignupScreenState extends State<SignupScreen>
       );
       
       final user = userCred.user;
-      if (user != null) {
-        await user.updateDisplayName(name);
-        
-        if (otp.isNotEmpty && (_verificationId != null || _webConfirmationResult != null)) {
-          try {
-            PhoneAuthCredential credential;
-            if (kIsWeb && _webConfirmationResult != null) {
-              credential = PhoneAuthProvider.credential(
-                verificationId: _webConfirmationResult.verificationId,
-                smsCode: otp,
-              );
-            } else {
-              credential = PhoneAuthProvider.credential(
-                verificationId: _verificationId!,
-                smsCode: otp,
-              );
-            }
-            await user.linkWithCredential(credential);
-          } on FirebaseAuthException catch (e) {
-            if (e.code == 'invalid-verification-code') {
-              _showError('Invalid OTP');
-            } else {
-              _showError(e.message ?? 'Phone verification failed.');
-            }
-          }
-        }
+      if (user == null) throw Exception('User creation returned null.');
+
+      // Step 2 — Store display name.
+      await user.updateDisplayName(_nameController.text.trim());
+
+      // Step 3 — Link phone credential if OTP was completed.
+      final otpVal = _otpController.text.trim();
+      if ((_verificationId != null || _webConfirmationResult != null) && otpVal.isNotEmpty) {
+        await _linkPhoneCredential(user, otpVal);
       }
-      
-      _showSuccess('Signup Successful');
+
+      // Step 4 — Pop back to root so AuthWrapper can navigate to Home.
+      _showSuccess('Welcome to Routo!');
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } on FirebaseAuthException catch (e) {
-      String message;
-      switch (e.code) {
-        case 'email-already-in-use':
-          message = 'User already exists. Please login.';
-          break;
-        case 'invalid-email':
-          message = 'The email address is not valid.';
-          break;
-        case 'weak-password':
-          message = 'Please enter a stronger password.';
-          break;
-        case 'operation-not-allowed':
-          message = 'Email/password accounts are not enabled.';
-          break;
-        case 'too-many-requests':
-          message = 'Too many requests. Please try again later.';
-          break;
-        case 'invalid-verification-code':
-          message = 'Invalid OTP';
-          break;
-        default:
-          message = e.message ?? 'Signup failed. Please try again.';
-      }
-      _showError(message);
+      _showError(_authErrorMessage(e.code, e.message));
     } catch (e) {
       _showError('An unexpected error occurred. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  /// Link phone credential to the freshly created email account.
+  Future<void> _linkPhoneCredential(User user, String otp) async {
+    try {
+      if (kIsWeb && _webConfirmationResult != null) {
+        // Web: call confirm() on the ConfirmationResult object directly.
+        await _webConfirmationResult!.confirm(otp);
+        // confirm() signs in as phone user — we must sign in the email user back.
+        // Re-sign-in with email so the email account is the primary user.
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      } else if (!kIsWeb && _verificationId != null) {
+        // Android: use PhoneAuthCredential and link it.
+        final credential = PhoneAuthProvider.credential(
+          verificationId: _verificationId!,
+          smsCode: otp,
+        );
+        await user.linkWithCredential(credential);
+      }
+    } on FirebaseAuthException catch (e) {
+      // Phone linking failed — account is still created, just log the issue.
+      debugPrint('Phone link failed (non-fatal): ${e.code} – ${e.message}');
+      if (e.code == 'invalid-verification-code') {
+        _showError(
+            'Invalid OTP — your account was created but phone was not linked.');
+      }
+      // Don't rethrow; email account creation succeeded.
+    }
+  }
+
+  /// Maps Firebase error codes to user-friendly messages.
+  String _authErrorMessage(String code, String? rawMessage) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'An account already exists for this email. Please sign in.';
+      case 'invalid-email':
+        return 'The email address is not valid.';
+      case 'weak-password':
+        return 'Password is too weak. Please use at least 6 characters.';
+      case 'operation-not-allowed':
+        return 'Email/password sign-up is not enabled. Contact support.';
+      case 'too-many-requests':
+        return 'Too many requests. Please wait a moment and try again.';
+      case 'network-request-failed':
+        return 'No internet connection. Please check your network.';
+      default:
+        return rawMessage ?? 'Sign-up failed. Please try again.';
+    }
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -718,7 +730,7 @@ class _SignupScreenState extends State<SignupScreen>
       shadowColor: Colors.black.withValues(alpha: 0.08),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () {},
+        onTap: _isLoading ? null : _handleGoogleSignIn,
         splashColor: const Color(0xFFE8F0FE),
         highlightColor: const Color(0xFFF0F4FF),
         child: Container(
