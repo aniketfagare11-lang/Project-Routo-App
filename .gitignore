@@ -41,3 +41,12 @@ package.json
 # Log / temp files
 *.txt
 flutter_run*.txt
+
+# Environment / Secret files — never commit these
+.env
+*.env
+/android/local.properties
+
+
+# Directions Service
+# (Already secured via String.fromEnvironment)

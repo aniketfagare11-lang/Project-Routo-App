@@ -46,9 +46,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen>
     with TickerProviderStateMixin {
 
   // Controllers initialised with blank values — populated in initState
-  late final TextEditingController _nameCtrl;
-  late final TextEditingController _emailCtrl;
-  late final TextEditingController _phoneCtrl;
+  late final TextEditingController _nameController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _mobileController;
 
   User? _currentUser;
   bool _isUploadingImage = false;
@@ -65,9 +65,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen>
   void initState() {
     super.initState();
     // Init controllers with empty values first (avoids LateInit error)
-    _nameCtrl  = TextEditingController();
-    _emailCtrl = TextEditingController();
-    _phoneCtrl = TextEditingController();
+    _nameController  = TextEditingController();
+    _emailController = TextEditingController();
+    _mobileController = TextEditingController();
 
     _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _bgCtrl   = AnimationController(vsync: this, duration: const Duration(seconds: 16))..repeat();
@@ -84,9 +84,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen>
       if (mounted) {
         setState(() {
           _currentUser = user;
-          _nameCtrl.text  = user?.displayName ?? 'User';
-          _emailCtrl.text = user?.email       ?? 'No email';
-          _phoneCtrl.text = user?.phoneNumber ?? '';
+          _nameController.text  = user?.displayName ?? 'User';
+          _emailController.text = user?.email       ?? 'No email';
+          _mobileController.text = user?.phoneNumber ?? '';
         });
       }
     });
@@ -141,7 +141,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen>
 
   @override
   void dispose() {
-    _nameCtrl.dispose(); _emailCtrl.dispose(); _phoneCtrl.dispose();
+    _nameController.dispose(); _emailController.dispose(); _mobileController.dispose();
     _fadeCtrl.dispose(); _bgCtrl.dispose();
     super.dispose();
   }
@@ -256,11 +256,11 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen>
             color: _C.glass,
           ),
           child: Column(children: [
-            _buildInput(_nameCtrl,  'Full Name',     Icons.person_outline_rounded,   _C.accentA, TextInputType.name),
+            _buildInput(_nameController,  'Full Name',     Icons.person_outline_rounded,   _C.accentA, TextInputType.name),
             const SizedBox(height: 20),
-            _buildInput(_emailCtrl, 'Email Address', Icons.alternate_email_rounded,  _C.accentC, TextInputType.emailAddress),
+            _buildInput(_emailController, 'Email Address', Icons.alternate_email_rounded,  _C.accentC, TextInputType.emailAddress),
             const SizedBox(height: 20),
-            _buildInput(_phoneCtrl, 'Phone Number',  Icons.phone_android_rounded,    _C.accentB, TextInputType.phone),
+            _buildInput(_mobileController, 'Phone Number',  Icons.phone_android_rounded,    _C.accentB, TextInputType.phone),
           ]),
         ),
       ),
@@ -427,16 +427,39 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen>
   // ── Save Button ───────────────────────────────────────────────────────────
   Widget _buildSaveButton(BuildContext context) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
+        if (_currentUser == null) return;
         HapticFeedback.mediumImpact();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Profile updated successfully!'),
-            backgroundColor: _C.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
+        
+        setState(() => _isUploadingImage = true); // use the loading state
+        try {
+          // 1. Update Display Name
+          await _currentUser!.updateDisplayName(_nameController.text.trim());
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Profile updated successfully!'),
+                backgroundColor: _C.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Update failed: $e'),
+                backgroundColor: _C.red,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          }
+        } finally {
+          if (mounted) setState(() => _isUploadingImage = false);
+        }
       },
       child: Container(
         width: double.infinity, height: 60,
@@ -445,8 +468,10 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen>
           gradient: const LinearGradient(colors: [_C.accentA, _C.accentB]),
           boxShadow: [BoxShadow(color: _C.blueGlow(0.4), blurRadius: 20, offset: const Offset(0, 8))],
         ),
-        child: const Center(
-          child: Text('Save Changes', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+        child: Center(
+          child: _isUploadingImage 
+              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+              : const Text('Save Changes', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
         ),
       ),
     );

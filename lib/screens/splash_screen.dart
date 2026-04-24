@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 //import 'package:flutter/services.dart';
 import '../main.dart';
-import 'login_screen.dart';
+//import 'login_screen.dart';
 
 // ─────────────────────────────────────────────
 //  USAGE:
@@ -251,8 +251,8 @@ class _SplashScreenState extends State<SplashScreen>
           shape: BoxShape.circle,
           gradient: RadialGradient(
             colors: [
-              RoutoColors.orange.withOpacity(0.20 * _glowPulse.value),
-              RoutoColors.orange.withOpacity(0.06 * _glowPulse.value),
+              RoutoColors.orange.withValues(alpha: 0.20 * _glowPulse.value),
+              RoutoColors.orange.withValues(alpha: 0.06 * _glowPulse.value),
               Colors.transparent,
             ],
             stops: const [0.0, 0.45, 1.0],
@@ -507,7 +507,7 @@ class _SpeedLinesPainter extends CustomPainter {
     // Left-side speed streaks (mirroring logo motion lines)
     void streak(double y, double w, double opacity) {
       p
-        ..color = const Color(0xFFE8500A).withOpacity(opacity)
+        ..color = const Color(0xFFE8500A).withValues(alpha: opacity)
         ..strokeWidth = 0.8;
       canvas.drawLine(Offset(0, y), Offset(w, y), p);
     }
