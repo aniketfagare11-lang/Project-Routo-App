@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'rider_order_details_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -521,6 +522,9 @@ class _RiderAvailableParcelsScreenState
 
   void _acceptParcel(_ParcelListing parcel) {
     HapticFeedback.mediumImpact();
+    final pCoord = _cityCoords[parcel.pickupCityKey];
+    final dCoord = _cityCoords[parcel.dropCityKey];
+
     Navigator.of(context).push(_slideRoute(RiderOrderDetailsScreen(
       parcelId: parcel.id,
       pickupAddress: parcel.pickupAddress,
@@ -529,6 +533,8 @@ class _RiderAvailableParcelsScreenState
       parcelEmoji: parcel.parcelEmoji,
       weight: parcel.weight,
       earnings: parcel.earnings,
+      pickupLatLng: pCoord != null ? LatLng(pCoord.lat, pCoord.lng) : null,
+      dropLatLng: dCoord != null ? LatLng(dCoord.lat, dCoord.lng) : null,
     )));
   }
 

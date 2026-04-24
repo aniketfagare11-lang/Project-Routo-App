@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'rider_navigation_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -34,6 +35,8 @@ class RiderOrderDetailsScreen extends StatefulWidget {
   final String parcelEmoji;
   final String weight;
   final String earnings;
+  final LatLng? pickupLatLng;
+  final LatLng? dropLatLng;
 
   const RiderOrderDetailsScreen({
     super.key,
@@ -44,6 +47,8 @@ class RiderOrderDetailsScreen extends StatefulWidget {
     required this.parcelEmoji,
     required this.weight,
     required this.earnings,
+    this.pickupLatLng,
+    this.dropLatLng,
   });
 
   @override
@@ -102,6 +107,8 @@ class _RiderOrderDetailsScreenState extends State<RiderOrderDetailsScreen>
       pickupAddress: widget.pickupAddress,
       dropAddress: widget.dropAddress,
       earnings: widget.earnings,
+      pickupLatLng: widget.pickupLatLng,
+      dropLatLng: widget.dropLatLng,
     )));
   }
 

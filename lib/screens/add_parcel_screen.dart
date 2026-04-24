@@ -562,12 +562,17 @@ class _AddParcelScreenState extends State<AddParcelScreen>
               child: const Row(children: [
                 Icon(Icons.straighten_rounded, color: _C.accentA, size: 14),
                 SizedBox(width: 8),
-                Text('Estimated delivery: ~2h 30m  ·  149 km',
+                Expanded(
+                  child: Text(
+                    'Estimated delivery: ~2h 30m  ·  149 km',
                     style: TextStyle(
                         color: _C.textSec,
                         fontSize: 12,
-                        fontWeight: FontWeight.w500)),
-                Spacer(),
+                        fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                SizedBox(width: 12),
                 Text('₹120 base',
                     style: TextStyle(
                         color: _C.accentB,
@@ -1054,9 +1059,14 @@ class _AddParcelScreenState extends State<AddParcelScreen>
           child: Row(children: [
             const Icon(Icons.error_outline_rounded, size: 12, color: _C.red),
             const SizedBox(width: 4),
-            Text(error,
+            Expanded(
+              child: Text(
+                error,
                 style: const TextStyle(
-                    color: _C.red, fontSize: 11, fontWeight: FontWeight.w600)),
+                    color: _C.red, fontSize: 11, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ]),
         ),
     ]);
@@ -1122,12 +1132,17 @@ class _SectionHeader extends StatelessWidget {
         child: Icon(icon, color: color, size: 17),
       ),
       const SizedBox(width: 12),
-      Text(title,
+      Expanded(
+        child: Text(
+          title,
           style: const TextStyle(
               color: _C.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.1)),
+              letterSpacing: 0.1),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
     ]);
   }
 }

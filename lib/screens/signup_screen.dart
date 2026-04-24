@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+// ignore: unnecessary_import
+import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
 //import 'home_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -26,11 +27,11 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen>
     with TickerProviderStateMixin {
   // ── Form controllers ──────────────────────────────────────────────────────
-  final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _mobileCtrl = TextEditingController();
-  final _otpCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _mobileController = TextEditingController();
+  final _otpController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -42,6 +43,7 @@ class _SignupScreenState extends State<SignupScreen>
 
   /// Web: ConfirmationResult returned by signInWithPhoneNumber()
   ConfirmationResult? _webConfirmationResult;
+  RecaptchaVerifier? _verifier;
 
   // ── Animations ───────────────────────────────────────────────────────────
   late AnimationController _fadeController;
@@ -104,14 +106,19 @@ class _SignupScreenState extends State<SignupScreen>
 
   @override
   void dispose() {
+    if (kIsWeb) {
+      try {
+        _verifier?.clear();
+      } catch (_) {}
+    }
     _fadeController.dispose();
     _slideController.dispose();
     _pulseController.dispose();
-    _nameCtrl.dispose();
-    _emailCtrl.dispose();
-    _mobileCtrl.dispose();
-    _otpCtrl.dispose();
-    _passwordCtrl.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _mobileController.dispose();
+    _otpController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -161,7 +168,7 @@ class _SignupScreenState extends State<SignupScreen>
 
   /// Validate inputs before sending OTP.
   bool _validateForOtp() {
-    if (_mobileCtrl.text.trim().isEmpty) {
+    if (_mobileController.text.trim().isEmpty) {
       _showError('Please enter a mobile number first.');
       return false;
     }
@@ -170,9 +177,9 @@ class _SignupScreenState extends State<SignupScreen>
 
   /// Validate all inputs before final signup.
   bool _validateForSignup() {
-    final name = _nameCtrl.text.trim();
-    final email = _emailCtrl.text.trim();
-    final password = _passwordCtrl.text.trim();
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       _showError('Please fill in Name, Email, and Password.');
@@ -187,7 +194,7 @@ class _SignupScreenState extends State<SignupScreen>
       return false;
     }
     // If OTP was sent but not entered, block signup.
-    if (_otpSent && _otpCtrl.text.trim().isEmpty) {
+    if (_otpSent && _otpController.text.trim().isEmpty) {
       _showError('Please enter the OTP sent to your mobile.');
       return false;
     }
@@ -198,7 +205,7 @@ class _SignupScreenState extends State<SignupScreen>
 
   Future<void> _sendOtp() async {
     if (!_validateForOtp()) return;
-    final phone = _normalizePhone(_mobileCtrl.text);
+    final phone = _normalizePhone(_mobileController.text);
 
     setState(() => _isSendingOtp = true);
     try {
@@ -217,20 +224,28 @@ class _SignupScreenState extends State<SignupScreen>
   /// Web OTP — uses invisible RecaptchaVerifier.
   Future<void> _sendOtpWeb(String phone) async {
     // RecaptchaVerifier anchors to 'recaptcha-container' div in index.html.
-    // size: invisible means it auto-solves for most real users.
-    final verifier = RecaptchaVerifier(
-      auth: FirebaseAuthPlatform.instance,
-      container: 'recaptcha-container',
-      size: RecaptchaVerifierSize.compact,
-      theme: RecaptchaVerifierTheme.light,
-      onSuccess: () => debugPrint('reCAPTCHA solved'),
-      onError: (FirebaseAuthException e) =>
-          _showError('reCAPTCHA failed: ${e.message}'),
-      onExpired: () => _showError('reCAPTCHA expired. Try again.'),
-    );
+    if (_verifier == null) {
+      _verifier = RecaptchaVerifier(
+        auth: FirebaseAuthPlatform.instance,
+        container: 'recaptcha-container',
+        size: RecaptchaVerifierSize.normal,
+        theme: RecaptchaVerifierTheme.light,
+        onSuccess: () => debugPrint('reCAPTCHA solved'),
+        onError: (FirebaseAuthException e) =>
+            _showError('reCAPTCHA failed: ${e.message}'),
+        onExpired: () => _showError('reCAPTCHA expired. Try again.'),
+      );
+      
+      await _verifier!.render().timeout(const Duration(seconds: 10), onTimeout: () {
+        throw Exception('reCAPTCHA loading timeout. Check config/internet.');
+      });
+    }
 
-    _webConfirmationResult =
-        await FirebaseAuth.instance.signInWithPhoneNumber(phone, verifier);
+    _webConfirmationResult = await FirebaseAuth.instance
+        .signInWithPhoneNumber(phone, _verifier)
+        .timeout(const Duration(seconds: 60), onTimeout: () {
+      throw Exception('OTP request timeout.');
+    });
 
     if (mounted) {
       setState(() => _otpSent = true);
@@ -246,7 +261,7 @@ class _SignupScreenState extends State<SignupScreen>
         // Auto-retrieval: fill OTP field silently.
         if (mounted && credential.smsCode != null) {
           setState(() {
-            _otpCtrl.text = credential.smsCode!;
+            _otpController.text = credential.smsCode!;
             _otpSent = true;
           });
         }
@@ -281,18 +296,18 @@ class _SignupScreenState extends State<SignupScreen>
       // Step 1 — Create email/password account.
       final userCred =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailCtrl.text.trim(),
-        password: _passwordCtrl.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
 
       final user = userCred.user;
       if (user == null) throw Exception('User creation returned null.');
 
       // Step 2 — Store display name.
-      await user.updateDisplayName(_nameCtrl.text.trim());
+      await user.updateDisplayName(_nameController.text.trim());
 
       // Step 3 — Link phone credential if OTP was completed.
-      final otpVal = _otpCtrl.text.trim();
+      final otpVal = _otpController.text.trim();
       if ((_verificationId != null || _webConfirmationResult != null) &&
           otpVal.isNotEmpty) {
         await _linkPhoneCredential(user, otpVal);
@@ -320,8 +335,8 @@ class _SignupScreenState extends State<SignupScreen>
         // confirm() signs in as phone user — we must sign in the email user back.
         // Re-sign-in with email so the email account is the primary user.
         await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailCtrl.text.trim(),
-          password: _passwordCtrl.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
         );
       } else if (!kIsWeb && _verificationId != null) {
         // Android: use PhoneAuthCredential and link it.
@@ -363,7 +378,36 @@ class _SignupScreenState extends State<SignupScreen>
   }
 
   Future<void> _handleGoogleSignIn() async {
-    // TODO: Implement Google Sign In
+    setState(() => _isLoading = true);
+    try {
+      GoogleSignIn googleSignIn;
+      if (kIsWeb) {
+        googleSignIn = GoogleSignIn(
+          clientId: '547297166217-92vllrd37bhq9pa6v8oo7njell3p4lgc.apps.googleusercontent.com',
+        );
+      } else {
+        googleSignIn = GoogleSignIn();
+      }
+      
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return; // user canceled
+      }
+      
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (e) {
+      _showError('Google Sign-In failed.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -587,7 +631,7 @@ class _SignupScreenState extends State<SignupScreen>
 
             // Name
             _buildTextField(
-              controller: _nameCtrl,
+              controller: _nameController,
               hint: 'Full Name',
               icon: Icons.person_outline,
             ),
@@ -595,7 +639,7 @@ class _SignupScreenState extends State<SignupScreen>
 
             // Email
             _buildTextField(
-              controller: _emailCtrl,
+              controller: _emailController,
               hint: 'Email address',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
@@ -604,7 +648,7 @@ class _SignupScreenState extends State<SignupScreen>
 
             // Mobile + Send OTP button
             _buildTextField(
-              controller: _mobileCtrl,
+              controller: _mobileController,
               hint: 'Mobile Number (with country code)',
               icon: Icons.phone_android_outlined,
               keyboardType: TextInputType.phone,
@@ -635,7 +679,7 @@ class _SignupScreenState extends State<SignupScreen>
               firstChild: const SizedBox.shrink(),
               secondChild: Column(children: [
                 _buildTextField(
-                  controller: _otpCtrl,
+                  controller: _otpController,
                   hint: 'Enter OTP',
                   icon: Icons.message_outlined,
                   keyboardType: TextInputType.number,
@@ -650,7 +694,7 @@ class _SignupScreenState extends State<SignupScreen>
 
             // Password
             _buildTextField(
-              controller: _passwordCtrl,
+              controller: _passwordController,
               hint: 'Password (min 6 characters)',
               icon: Icons.lock_outline_rounded,
               isPassword: true,

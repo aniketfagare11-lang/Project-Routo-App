@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../services/directions_service.dart';
 import 'rider_available_parcels_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -19,9 +23,8 @@ class _C {
   static const red = Color(0xFFEF4444);
   static const textPrimary = Color(0xFFF1F5F9);
   static const textSec = Color(0xFF64748B);
-  static Color blueGlow(double a) => accentA.withValues(alpha: a);
+  // blueGlow / greenGlow unused in this screen — omitted to keep _C clean
   static Color orangeGlow(double a) => accentB.withValues(alpha: a);
-  static Color greenGlow(double a) => green.withValues(alpha: a);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,13 +52,23 @@ class _RiderRouteSelectionScreenState extends State<RiderRouteSelectionScreen>
   String? _startError;
   String? _endError;
 
+  // ── Real map state ──────────────────────────────────────────────────────
+  GoogleMapController? _mapController;
+  Set<Polyline> _polylines = {};
+  Set<Marker> _markers = {};
+  bool _isFetchingRoute = false;
+  String _distanceText = '–';
+  String _durationText = '–';
+  bool _routeApiLoaded = false;
+
+  // Debounce timer — prevents API call on every keystroke.
+  Timer? _debounceTimer;
+
   late AnimationController _bgCtrl;
   late AnimationController _entryCtrl;
-  late AnimationController _mapCtrl;
   late Animation<double> _bgAnim;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
-  late Animation<double> _mapAnim;
 
   @override
   void initState() {
@@ -73,11 +86,6 @@ class _RiderRouteSelectionScreenState extends State<RiderRouteSelectionScreen>
             .animate(CurvedAnimation(
                 parent: _entryCtrl, curve: Curves.easeOutCubic));
 
-    _mapCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 4))
-      ..repeat();
-    _mapAnim = CurvedAnimation(parent: _mapCtrl, curve: Curves.linear);
-
     _entryCtrl.forward();
 
     for (final fn in [_startFocus, _endFocus]) {
@@ -90,14 +98,121 @@ class _RiderRouteSelectionScreenState extends State<RiderRouteSelectionScreen>
   void _onFieldChanged() {
     final ready = _startCtrl.text.trim().isNotEmpty &&
         _endCtrl.text.trim().isNotEmpty;
-    if (ready != _routeReady) setState(() => _routeReady = ready);
+
+    // Update the ready flag immediately for UI purposes.
+    if (ready != _routeReady) {
+      setState(() => _routeReady = ready);
+    }
+
+    // Debounce: wait 800ms after the user stops typing before hitting the API.
+    _debounceTimer?.cancel();
+    if (ready) {
+      _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+        debugPrint('[RouteSelection] Debounced fetch: '
+            '"${_startCtrl.text.trim()}" → "${_endCtrl.text.trim()}"');
+        _fetchRoutePreview();
+      });
+    } else {
+      // Both fields not filled — clear the map.
+      setState(() {
+        _polylines = {};
+        _markers = {};
+        _routeApiLoaded = false;
+        _distanceText = '–';
+        _durationText = '–';
+      });
+    }
+  }
+
+  // ── Fetch real route for map preview ────────────────────────────────────
+  LatLngBounds? _currentBounds;
+
+  Future<void> _fetchRoutePreview() async {
+    if (_isFetchingRoute) return;
+    
+    final originText = _startCtrl.text.trim();
+    final destText = _endCtrl.text.trim();
+    
+    if (originText.isEmpty || destText.isEmpty) {
+      setState(() {
+        _polylines = {};
+        _markers = {};
+        _currentBounds = null;
+        _routeApiLoaded = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isFetchingRoute = true;
+      _routeApiLoaded = false;
+      _polylines = {};
+      _markers = {};
+    });
+
+    final result = await DirectionsService.getRoute(
+      origin: originText,
+      destination: destText,
+    );
+
+    if (!mounted) return;
+
+    if (result != null && result.polylinePoints.isNotEmpty) {
+      setState(() {
+        _isFetchingRoute = false;
+        _routeApiLoaded = true;
+        _distanceText = result.distanceText;
+        _durationText = result.durationText;
+        _currentBounds = result.bounds;
+        _polylines = {
+          Polyline(
+            polylineId: const PolylineId('preview_route'),
+            points: result.polylinePoints,
+            color: const Color(0xFF3B82F6),
+            width: 5,
+            startCap: Cap.roundCap,
+            endCap: Cap.roundCap,
+            jointType: JointType.round,
+          ),
+        };
+        _markers = {
+          Marker(
+            markerId: const MarkerId('origin'),
+            position: result.polylinePoints.first,
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+            infoWindow: InfoWindow(title: originText.split(',').first),
+          ),
+          Marker(
+            markerId: const MarkerId('dest'),
+            position: result.polylinePoints.last,
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+            infoWindow: InfoWindow(title: destText.split(',').first),
+          ),
+        };
+      });
+      
+      // Animate camera to fit the full route
+      if (_mapController != null && _currentBounds != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngBounds(_currentBounds!, 48),
+        );
+      }
+    } else {
+      setState(() {
+        _isFetchingRoute = false;
+        _distanceText = '–';
+        _durationText = '–';
+        _currentBounds = null;
+      });
+    }
   }
 
   @override
   void dispose() {
     _bgCtrl.dispose();
     _entryCtrl.dispose();
-    _mapCtrl.dispose();
+    _debounceTimer?.cancel();
+    _mapController?.dispose();
     _startCtrl.dispose();
     _endCtrl.dispose();
     _startFocus.dispose();
@@ -317,76 +432,109 @@ class _RiderRouteSelectionScreenState extends State<RiderRouteSelectionScreen>
   Widget _buildMapPreview() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          height: 180,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _C.glassBorder),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                _C.accentB.withValues(alpha: 0.07),
-                Colors.transparent,
-              ],
-            ),
-          ),
-          child: AnimatedBuilder(
-            animation: _mapAnim,
-            builder: (_, __) => CustomPaint(
-              painter: _RoutePreviewPainter(
-                progress: _mapAnim.value,
-                hasRoute: _routeReady,
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _C.glassBorder),
+          color: const Color(0xFF0F172A),
+        ),
+        child: Stack(
+          children: [
+            // ── Placeholder shown before both fields are filled ──
+            if (!_routeReady)
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.map_outlined,
+                        color: _C.textSec.withValues(alpha: 0.5), size: 38),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Enter both locations\nto preview route',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: _C.textSec.withValues(alpha: 0.6),
+                          fontSize: 12.5,
+                          height: 1.5),
+                    ),
+                  ],
+                ),
+              )
+            else
+              // ── Real Google Map ──
+              Positioned.fill(
+                child: GoogleMap(
+                  initialCameraPosition: const CameraPosition(
+                    target: LatLng(18.9, 73.3), // centre of Maharashtra
+                    zoom: 7,
+                  ),
+                  onMapCreated: (c) {
+                    _mapController = c;
+                    // If route already fetched, fit camera now using stored bounds
+                    if (_currentBounds != null) {
+                      Future.delayed(const Duration(milliseconds: 300), () {
+                        if (_mapController != null && _currentBounds != null) {
+                          _mapController!.animateCamera(
+                            CameraUpdate.newLatLngBounds(_currentBounds!, 48),
+                          );
+                        }
+                      });
+                    }
+                  },
+                  polylines: _polylines,
+                  markers: _markers,
+                  style: _kDarkMapStylePreview,
+                  mapType: MapType.normal,
+                  zoomControlsEnabled: false,
+                  myLocationButtonEnabled: false,
+                  compassEnabled: false,
+                  mapToolbarEnabled: false,
+                  rotateGesturesEnabled: !kIsWeb,
+                  scrollGesturesEnabled: true,
+                  zoomGesturesEnabled: true,
+                ),
               ),
-              child: Center(
-                child: !_routeReady
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.map_outlined,
-                              color: _C.textSec.withValues(alpha: 0.5),
-                              size: 36),
-                          const SizedBox(height: 8),
-                          Text('Enter locations to preview route',
-                              style: TextStyle(
-                                  color: _C.textSec.withValues(alpha: 0.6),
-                                  fontSize: 12.5)),
-                        ],
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                  color: _C.green.withValues(alpha: 0.4)),
-                            ),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Container(
-                                width: 7,
-                                height: 7,
-                                decoration: BoxDecoration(
-                                    shape: BoxShape.circle, color: _C.green),
-                              ),
-                              const SizedBox(width: 6),
-                              const Text('Route Active',
-                                  style: TextStyle(
-                                      color: _C.green,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700)),
-                            ]),
-                          ),
-                        ],
-                      ),
+            // ── Loading spinner overlay ──
+            if (_isFetchingRoute)
+              const Positioned.fill(
+                child: ColoredBox(
+                  color: Color(0x880F172A),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: Color(0xFF3B82F6)),
+                  ),
+                ),
               ),
-            ),
-          ),
+            // ── "Route Active" badge ──
+            if (_routeApiLoaded && !_isFetchingRoute)
+              Positioned(
+                top: 10,
+                left: 12,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.65),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _C.green.withValues(alpha: 0.45)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(
+                        width: 7,
+                        height: 7,
+                        decoration:
+                            const BoxDecoration(shape: BoxShape.circle, color: _C.green)),
+                    const SizedBox(width: 6),
+                    const Text('Route Active',
+                        style: TextStyle(
+                            color: _C.green,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -591,9 +739,11 @@ class _RiderRouteSelectionScreenState extends State<RiderRouteSelectionScreen>
       opacity: _routeReady ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 300),
       child: Row(children: [
-        _infoChip(Icons.straighten_rounded, '149 km', _C.accentA),
+        _infoChip(Icons.straighten_rounded,
+            _routeApiLoaded ? _distanceText : '…', _C.accentA),
         const SizedBox(width: 10),
-        _infoChip(Icons.access_time_rounded, '~2h 30m', _C.accentC),
+        _infoChip(Icons.access_time_rounded,
+            _routeApiLoaded ? _durationText : '…', _C.accentC),
         const SizedBox(width: 10),
         _infoChip(Icons.local_gas_station_rounded, '~₹180', _C.accentB),
       ]),
@@ -630,11 +780,8 @@ class _RiderRouteSelectionScreenState extends State<RiderRouteSelectionScreen>
         height: 58,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            colors: [
-              _C.accentB,
-              const Color(0xFFEF4444),
-            ],
+          gradient: const LinearGradient(
+            colors: [_C.accentB, Color(0xFFEF4444)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -708,99 +855,20 @@ class _RiderRouteSelectionScreenState extends State<RiderRouteSelectionScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  ROUTE PREVIEW PAINTER — animated dots on a road
+//  DARK MAP STYLE (preview) — matches the navigation screen palette
 // ─────────────────────────────────────────────────────────────────────────────
-class _RoutePreviewPainter extends CustomPainter {
-  final double progress;
-  final bool hasRoute;
-  _RoutePreviewPainter({required this.progress, required this.hasRoute});
+const String _kDarkMapStylePreview = '''[
+  {"elementType":"geometry","stylers":[{"color":"#0f172a"}]},
+  {"elementType":"labels.text.fill","stylers":[{"color":"#64748b"}]},
+  {"elementType":"labels.text.stroke","stylers":[{"color":"#0f172a"}]},
+  {"featureType":"poi","stylers":[{"visibility":"off"}]},
+  {"featureType":"road","elementType":"geometry","stylers":[{"color":"#1e293b"}]},
+  {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#334155"}]},
+  {"featureType":"road","elementType":"labels.icon","stylers":[{"visibility":"off"}]},
+  {"featureType":"transit","stylers":[{"visibility":"off"}]},
+  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#0c1f3f"}]}
+]''';
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // Grid background
-    final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
-      ..style = PaintingStyle.fill;
-    const step = 24.0;
-    for (double x = 0; x < w; x += step) {
-      for (double y = 0; y < h; y += step) {
-        canvas.drawCircle(Offset(x, y), 1.0, gridPaint);
-      }
-    }
-
-    if (!hasRoute) return;
-
-    // Route path
-    final path = Path();
-    path.moveTo(w * 0.08, h * 0.75);
-    path.cubicTo(
-        w * 0.25, h * 0.2, w * 0.6, h * 0.8, w * 0.92, h * 0.25);
-
-    final pathPaint = Paint()
-      ..shader = const LinearGradient(
-        colors: [Color(0xFF3B82F6), Color(0xFFF97316)],
-      ).createShader(Rect.fromLTWH(0, 0, w, h))
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPath(path, pathPaint);
-
-    // Dashes animation
-    final metrics = path.computeMetrics().toList();
-    if (metrics.isEmpty) return;
-    final pm = metrics.first;
-    final total = pm.length;
-    final dotPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    for (int i = 0; i < 5; i++) {
-      final t = ((progress + i / 5) % 1.0);
-      final pos = pm.getTangentForOffset(t * total);
-      if (pos != null) {
-        canvas.drawCircle(pos.position, 3, dotPaint);
-      }
-    }
-
-    // Start dot
-    final startPaint = Paint()
-      ..color = const Color(0xFF3B82F6)
-      ..style = PaintingStyle.fill;
-    final startPos = pm.getTangentForOffset(0);
-    if (startPos != null) {
-      canvas.drawCircle(startPos.position, 7, startPaint);
-      canvas.drawCircle(
-          startPos.position,
-          7,
-          Paint()
-            ..color = Colors.white
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2);
-    }
-
-    // End dot
-    final endPaint = Paint()
-      ..color = const Color(0xFFF97316)
-      ..style = PaintingStyle.fill;
-    final endPos = pm.getTangentForOffset(total);
-    if (endPos != null) {
-      canvas.drawCircle(endPos.position, 7, endPaint);
-      canvas.drawCircle(
-          endPos.position,
-          7,
-          Paint()
-            ..color = Colors.white
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_RoutePreviewPainter old) =>
-      old.progress != progress || old.hasRoute != hasRoute;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SLIDE ROUTE HELPER

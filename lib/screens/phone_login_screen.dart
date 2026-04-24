@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+// ignore: unnecessary_import
 import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
@@ -19,6 +19,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen>
   bool _otpSent = false;
   String? _verificationId;
   ConfirmationResult? _webConfirmationResult;
+  RecaptchaVerifier? _verifier;
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -49,6 +50,11 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen>
 
   @override
   void dispose() {
+    if (kIsWeb) {
+      try {
+        _verifier?.clear();
+      } catch (_) {}
+    }
     _fadeController.dispose();
     _slideController.dispose();
     _phoneController.dispose();
@@ -86,12 +92,27 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen>
 
     try {
       if (kIsWeb) {
-        final verifier = RecaptchaVerifier(
-          auth: FirebaseAuthPlatform.instance,
-          container: 'recaptcha-container',
-          size: RecaptchaVerifierSize.compact,
-        );
-        _webConfirmationResult = await FirebaseAuth.instance.signInWithPhoneNumber(fullPhone, verifier);
+        if (_verifier == null) {
+          _verifier = RecaptchaVerifier(
+            auth: FirebaseAuthPlatform.instance,
+            container: 'recaptcha-container',
+            size: RecaptchaVerifierSize.normal,
+            onSuccess: () => debugPrint('reCAPTCHA solved'),
+            onError: (FirebaseAuthException e) =>
+                _showError('reCAPTCHA failed: ${e.message}'),
+            onExpired: () => _showError('reCAPTCHA expired. Try again.'),
+          );
+          await _verifier!.render().timeout(const Duration(seconds: 10), onTimeout: () {
+            throw Exception('reCAPTCHA failed to load. Please check Firebase config.');
+          });
+        }
+
+        _webConfirmationResult = await FirebaseAuth.instance
+            .signInWithPhoneNumber(fullPhone, _verifier)
+            .timeout(const Duration(seconds: 60), onTimeout: () {
+          throw Exception('OTP request timed out.');
+        });
+        
         setState(() => _otpSent = true);
       } else {
         await FirebaseAuth.instance.verifyPhoneNumber(
@@ -196,7 +217,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen>
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 40,
             offset: const Offset(0, 20),
           ),
@@ -318,7 +339,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen>
           backgroundColor: const Color(0xFF1565C0),
           foregroundColor: Colors.white,
           elevation: 8,
-          shadowColor: const Color(0xFF1565C0).withOpacity(0.4),
+          shadowColor: const Color(0xFF1565C0).withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
         child: _isLoading

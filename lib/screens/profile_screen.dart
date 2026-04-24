@@ -12,7 +12,6 @@ import 'earnings_screen.dart';
 import 'notifications_screen.dart';
 import 'privacy_security_screen.dart';
 import 'help_support_screen.dart';
-import 'login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
