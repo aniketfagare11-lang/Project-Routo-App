@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:routo_app/screens/phone_login_screen.dart';
 import 'signup_screen.dart';
-import 'home_screen.dart';
+//import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -126,11 +128,7 @@ class _LoginScreenState extends State<LoginScreen>
         email: email,
         password: password,
       );
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
-      );
+      // Navigation is now handled natively via the StreamBuilder wrapper in main.dart
     } on FirebaseAuthException catch (e) {
       String message;
       switch (e.code) {
@@ -167,15 +165,24 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
+      GoogleSignIn googleSignIn;
+      if (kIsWeb) {
+        googleSignIn = GoogleSignIn(
+          clientId: '547297166217-92vllrd37bhq9pa6v8oo7njell3p4lgc.apps.googleusercontent.com',
+        );
+      } else {
+        googleSignIn = GoogleSignIn();
+      }
+
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      
+
       if (googleUser == null) {
         setState(() => _isLoading = false);
         return; // User canceled the sign-in
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -216,17 +223,17 @@ class _LoginScreenState extends State<LoginScreen>
                 Positioned(
                   top: -60,
                   right: -60,
-                  child: _buildDecoCircle(200, Colors.white.withOpacity(0.04)),
+                  child: _buildDecoCircle(200, Colors.white.withValues(alpha: 0.04)),
                 ),
                 Positioned(
                   top: 80,
                   left: -80,
-                  child: _buildDecoCircle(160, Colors.white.withOpacity(0.03)),
+                  child: _buildDecoCircle(160, Colors.white.withValues(alpha: 0.03)),
                 ),
                 Positioned(
                   bottom: 100,
                   right: -40,
-                  child: _buildDecoCircle(120, Colors.white.withOpacity(0.04)),
+                  child: _buildDecoCircle(120, Colors.white.withValues(alpha: 0.04)),
                 ),
                 const Positioned.fill(
                   child: CustomPaint(painter: RouteDotsPainter()),
@@ -292,13 +299,13 @@ class _LoginScreenState extends State<LoginScreen>
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 24,
                   offset: const Offset(0, 8),
                   spreadRadius: 2,
                 ),
                 BoxShadow(
-                  color: const Color(0xFFFF6F00).withOpacity(0.3),
+                  color: const Color(0xFFFF6F00).withValues(alpha: 0.3),
                   blurRadius: 32,
                   offset: const Offset(0, 4),
                   spreadRadius: 4,
@@ -334,8 +341,8 @@ class _LoginScreenState extends State<LoginScreen>
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(50),
-        color: Colors.white.withOpacity(0.12),
-        border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.8),
+        color: Colors.white.withValues(alpha: 0.12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 0.8),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -362,13 +369,13 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 40,
             offset: const Offset(0, 16),
             spreadRadius: 0,
           ),
           BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.08),
+            color: const Color(0xFF1565C0).withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(-4, 0),
             spreadRadius: 0,
@@ -514,7 +521,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1565C0).withOpacity(0.35),
+              color: const Color(0xFF1565C0).withValues(alpha: 0.35),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -620,11 +627,11 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const PhoneLoginScreen()),
-          );
-        },
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PhoneLoginScreen()),
+            );
+          },
           splashColor: Colors.white.withValues(alpha: 0.15),
           highlightColor: Colors.white.withValues(alpha: 0.05),
           child: const Row(
@@ -654,13 +661,17 @@ class _LoginScreenState extends State<LoginScreen>
         GestureDetector(
           onTap: () => Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const SignupScreen())),
-          child: const Text('Sign Up',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Colors.white)),
+          behavior: HitTestBehavior.opaque,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Text('Sign Up',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    decoration: TextDecoration.underline,
+                    decorationColor: Colors.white)),
+          ),
         ),
       ],
     );

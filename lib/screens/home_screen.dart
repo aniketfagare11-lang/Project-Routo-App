@@ -15,6 +15,10 @@ import 'package:lottie/lottie.dart';
 import 'add_parcel_screen.dart';
 import 'parcel_details_screen.dart';
 import 'profile_screen.dart';
+import 'history_screen.dart';
+import 'rider_route_selection_screen.dart';
+import 'rider_available_parcels_screen.dart';
+import '../widgets/ai_chatbot_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  DESIGN TOKENS
@@ -219,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Stack(
           children: [
             // ── Animated deep-space background ──
-            _buildAnimatedBackground(),
+            IgnorePointer(child: _buildAnimatedBackground()),
             // ── Main scrollable content ──
             CustomScrollView(
               physics: const BouncingScrollPhysics(),
@@ -235,32 +239,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 24),
-                            // 1. What would you like to do
+                            // 1. Main action cards
                             _buildWhatSection(),
                             const SizedBox(height: 28),
-                            // 2. Today's Earnings
-                            _buildSectionLabel("Today's Earnings"),
-                            const SizedBox(height: 12),
-                            _buildTodaysEarningsCard(),
-                            const SizedBox(height: 28),
-                            // 3. Recommended Route
+
+                            // 2. Recommended Route
                             _buildSectionLabel('Recommended Route'),
                             const SizedBox(height: 12),
                             _buildRecommendedRouteCard(),
                             const SizedBox(height: 28),
-                            // 4. Today's Opportunities
+
+                            // 3. Today's Opportunities
                             _buildSectionLabel("Today's Opportunities"),
                             const SizedBox(height: 12),
                             _buildOpportunitiesCard(),
                             const SizedBox(height: 28),
-                            // 5. Your Deliveries (max 3 + View All)
+
+                            // 4. Your Deliveries
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 _buildSectionLabel('Your Deliveries'),
                                 GestureDetector(
-                                  onTap: () {},
+                                  onTap: () {
+                                    setState(() => _currentIndex = 1);
+                                    Navigator.of(context).push(
+                                        _slideRoute(const HistoryScreen()));
+                                  },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 6),
@@ -281,6 +286,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                             const SizedBox(height: 12),
                             _buildDeliveries(),
+                            const SizedBox(height: 28),
+
+                            // 5. My Activity mini cards
+                            _buildSectionLabel('My Activity'),
+                            const SizedBox(height: 12),
+                            _buildActivityMiniCards(),
                           ],
                         ),
                       ),
@@ -289,6 +300,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ],
             ),
+            const AiChatbotWidget(),
           ],
         ),
       ),
@@ -467,13 +479,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 )),
           ),
         ]),
-        // Action bar
+        // Action bar — profile avatar moved to bottom nav
         Row(children: [
           _buildOnlineToggle(),
           const SizedBox(width: 10),
           _buildNotificationBadge(),
-          const SizedBox(width: 10),
-          _buildAvatarButton(),
         ]),
       ],
     );
@@ -527,7 +537,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildAvatarButton() {
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(_slideRoute(const ProfileScreen())),
+      onTap: () =>
+          Navigator.of(context).push(_slideRoute(const ProfileScreen())),
       child: Container(
         width: 42,
         height: 42,
@@ -618,13 +629,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Lottie Delivery Animation
+        // Lottie Delivery Animation — error-guarded so a missing/corrupt asset
+        // never crashes the home screen.
         SizedBox(
           width: 140,
           height: 100,
           child: Lottie.asset(
             'assets/animations/delivery.json',
             fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
           ),
         ),
         const SizedBox(height: 8),
@@ -645,12 +658,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: [
                   Text(timeEmoji, style: const TextStyle(fontSize: 13)),
                   const SizedBox(width: 8),
-                  Text(
-                    '$timeGreeting, $_userName 👋',
-                    style: const TextStyle(
-                      color: _C.textPrimary,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
+                  Flexible(
+                    child: Text(
+                      '$timeGreeting, $_userName 👋',
+                      style: const TextStyle(
+                        color: _C.textPrimary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -679,7 +695,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 10),
         Text(
-          'Send or deliver parcels with ease.',
+          'Send or deliver parcels with Routo.',
           style: const TextStyle(
             fontSize: 14.5,
             color: _C.textSec,
@@ -690,7 +706,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ],
     );
   }
-
 
   Widget _buildStatsRow() {
     return Row(children: [
@@ -744,7 +759,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _buildSectionLabel('Choose your action'),
       const SizedBox(height: 4),
       Text(
-        'Send or deliver parcels with ease',
+        'Send or deliver parcels with Routo',
         style: const TextStyle(
             fontSize: 13, color: _C.textSec, fontWeight: FontWeight.w400),
       ),
@@ -770,7 +785,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             subtitle: 'Earn on your route',
             gradientColors: const [Color(0xFFF97316), Color(0xFFEF4444)],
             glowColor: _C.accentB,
-            onTap: _handleSearch,
+            onTap: () => Navigator.of(context).push(
+              _slideRoute(const RiderRouteSelectionScreen()),
+            ),
           ),
         ),
       ]),
@@ -963,26 +980,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       child: Row(children: [
         const Icon(Icons.radio_button_checked, color: _C.accentA, size: 16),
         const SizedBox(width: 8),
-        Text(from,
-            style: const TextStyle(
-                color: _C.textPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 13.5)),
-        const Spacer(),
-        Container(
-            width: 40,
-            height: 1.5,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_C.accentA, _C.accentB]),
-              borderRadius: BorderRadius.circular(2),
-            )),
-        const Icon(Icons.arrow_forward, color: _C.accentB, size: 14),
-        const Spacer(),
-        Text(to,
-            style: const TextStyle(
-                color: _C.textPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 13.5)),
+        Expanded(
+          child: Text(from,
+              style: const TextStyle(
+                  color: _C.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5),
+              overflow: TextOverflow.ellipsis),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8.0),
+          child: Icon(Icons.arrow_forward, color: _C.accentB, size: 14),
+        ),
+        Expanded(
+          child: Text(to,
+              style: const TextStyle(
+                  color: _C.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5),
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end),
+        ),
         const SizedBox(width: 8),
         const Icon(Icons.location_on_rounded, color: _C.accentB, size: 16),
       ]),
@@ -1077,22 +1095,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               color: Colors.white, size: 16),
         ),
         const SizedBox(width: 14),
-        const Text.rich(
-          TextSpan(
-            text: 'Earn up to ',
-            style: TextStyle(
-                color: _C.textPrimary,
-                fontSize: 14,
-                fontWeight: FontWeight.w500),
-            children: [
-              TextSpan(
-                  text: '₹120 ',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      color: _C.accentB)),
-              TextSpan(text: 'on this route'),
-            ],
+        const Expanded(
+          child: Text.rich(
+            TextSpan(
+              text: 'Earn up to ',
+              style: TextStyle(
+                  color: _C.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500),
+              children: [
+                TextSpan(
+                    text: '₹120 ',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: _C.accentB)),
+                TextSpan(text: 'on this route'),
+              ],
+            ),
           ),
         ),
       ]),
@@ -1470,7 +1490,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           icon: Icons.explore_rounded,
           gradientColors: const [_C.accentA, _C.accentB],
           shadowColor: _C.accentA,
-          onTap: () {}, // hook up to opportunities / route screen
+          onTap: () => Navigator.of(context).push(
+            _slideRoute(const RiderAvailableParcelsScreen(
+              fromLocation: 'Pune, Maharashtra',
+              toLocation: 'Mumbai, Maharashtra',
+            )),
+          ),
         ),
       ]),
     );
@@ -1586,30 +1611,186 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         Text('Start delivering parcels to see your\nactivity here.',
             textAlign: TextAlign.center,
             style: TextStyle(color: _C.textSec, fontSize: 13, height: 1.5)),
-        const SizedBox(height: 20),
-        GestureDetector(
-          onTap: () {},
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_C.accentA, _C.accentB]),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                    color: _C.blueGlow(0.35),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4))
-              ],
-            ),
-            child: const Text('Find Deliveries',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700)),
-          ),
-        ),
         const SizedBox(height: 8),
       ]),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  ACTIVITY MINI CARDS  (Parcels Sent + Parcels Delivered counts)
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildActivityMiniCards() {
+    return Row(children: [
+      Expanded(
+        child: _buildMiniStatCard(
+          emoji: '📦',
+          label: 'Parcels Sent',
+          value: '4',
+          accent: _C.accentC,
+          bg: _C.accentC.withValues(alpha: 0.10),
+        ),
+      ),
+      const SizedBox(width: 14),
+      Expanded(
+        child: _buildMiniStatCard(
+          emoji: '🚚',
+          label: 'Parcels Delivered',
+          value: '5',
+          accent: _C.green,
+          bg: _C.green.withValues(alpha: 0.10),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildMiniStatCard({
+    required String emoji,
+    required String label,
+    required String value,
+    required Color accent,
+    required Color bg,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: accent.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 26)),
+            const SizedBox(height: 10),
+            Text(value,
+                style: TextStyle(
+                    color: accent,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    height: 1)),
+            const SizedBox(height: 4),
+            Text(label,
+                style: const TextStyle(
+                    color: _C.textSec,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  BOTTOM NAV  — 3 tabs: Home · History · Profile
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildBottomNav() {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xED0F1C35),
+          border:
+              const Border(top: BorderSide(color: _C.glassBorder, width: 0.8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.40),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  idx: 0,
+                  on: Icons.home_filled,
+                  off: Icons.home_outlined,
+                  label: 'Home',
+                  onTap: () => setState(() => _currentIndex = 0),
+                ),
+                _buildNavItem(
+                  idx: 1,
+                  on: Icons.history_rounded,
+                  off: Icons.history_outlined,
+                  label: 'History',
+                  onTap: () async {
+                    setState(() => _currentIndex = 1);
+                    await Navigator.of(context)
+                        .push(_slideRoute(const HistoryScreen()));
+                    if (mounted) {
+                      setState(() => _currentIndex = 0);
+                    }
+                  },
+                ),
+                _buildNavItem(
+                  idx: 2,
+                  on: Icons.person_rounded,
+                  off: Icons.person_outline_rounded,
+                  label: 'Profile',
+                  onTap: () async {
+                    setState(() => _currentIndex = 2);
+                    await Navigator.of(context)
+                        .push(_slideRoute(const ProfileScreen()));
+                    if (mounted) {
+                      setState(() => _currentIndex = 0);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required int idx,
+    required IconData on,
+    required IconData off,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final active = _currentIndex == idx;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: active
+              ? const LinearGradient(colors: [_C.accentA, _C.accentC])
+              : null,
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                      color: _C.blueGlow(0.45),
+                      blurRadius: 14,
+                      offset: const Offset(0, 3))
+                ]
+              : null,
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(active ? on : off,
+              color: active ? Colors.white : _C.textSec, size: 24),
+          const SizedBox(height: 4),
+          Text(label,
+              style: TextStyle(
+                color: active ? Colors.white : _C.textSec,
+                fontSize: 11.5,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              )),
+        ]),
+      ),
     );
   }
 
@@ -1696,79 +1877,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  //  BOTTOM NAV
-  // ─────────────────────────────────────────────────────────────────────────
-  Widget _buildBottomNav() {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: _C.surface.withValues(alpha: 0.9),
-            border: const Border(
-                top: BorderSide(color: _C.glassBorder, width: 0.8)),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(
-                      0, Icons.home_filled, Icons.home_outlined, 'Home'),
-                  _buildNavItem(
-                      1, Icons.map_rounded, Icons.map_outlined, 'Map'),
-                  _buildNavItem(2, Icons.insights_rounded,
-                      Icons.insights_outlined, 'Analytics'),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int idx, IconData on, IconData off, String label) {
-    final active = _currentIndex == idx;
-    return GestureDetector(
-      onTap: () => setState(() => _currentIndex = idx),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: active
-              ? const LinearGradient(colors: [_C.accentA, _C.accentC])
-              : null,
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                      color: _C.blueGlow(0.45),
-                      blurRadius: 14,
-                      offset: const Offset(0, 3))
-                ]
-              : null,
-        ),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(active ? on : off,
-              color: active ? Colors.white : _C.textSec, size: 24),
-          const SizedBox(height: 4),
-          Text(label,
-              style: TextStyle(
-                color: active ? Colors.white : _C.textSec,
-                fontSize: 11.5,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-              )),
-        ]),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
   //  HELPERS
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildSectionLabel(String text) {
@@ -1790,8 +1898,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // opaque:true allows the HomeScreen to correctly unmount during transition,
+  // preventing black screen rendering issues when returning.
   PageRoute _slideRoute(Widget page) {
     return PageRouteBuilder(
+      opaque: true,
       pageBuilder: (_, __, ___) => page,
       transitionsBuilder: (_, anim, __, child) {
         return SlideTransition(
