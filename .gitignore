@@ -50,3 +50,6 @@ flutter_run*.txt
 
 # Directions Service
 # (Already secured via String.fromEnvironment)
+
+# Local Web Environment Variables
+web/env.js
