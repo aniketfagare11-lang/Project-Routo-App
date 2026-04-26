@@ -52,4 +52,5 @@ flutter_run*.txt
 # (Already secured via String.fromEnvironment)
 
 # Local Web Environment Variables
-web/env.js
+/web/env.js
+.vercel

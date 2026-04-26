@@ -1,54 +1,37 @@
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AiChatService {
-  static final String _apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-  
-  late final GenerativeModel _model;
-  late final ChatSession _chat;
-
-  AiChatService() {
-    _model = GenerativeModel(
-      model: 'gemini-2.5-flash',
-      apiKey: _apiKey,
-      generationConfig: GenerationConfig(
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 1024,
-      ),
-      systemInstruction: Content.system(
-        'You are the Routo AI Assistant. Routo is a smart route delivery and navigation app. '
-        'Your goal is to help users with: \n'
-        '1. Finding the best delivery routes.\n'
-        '2. Tracking parcels.\n'
-        '3. Understanding delivery earnings.\n'
-        '4. Navigating the app features (Login, Profile, Saved Addresses, Rider Screens).\n\n'
-        'Keep your responses professional, helpful, and concise. '
-        'If the user asks something unrelated to Routo or delivery, politely redirect them to how you can help within the app.'
-      ),
-    );
-    _chat = _model.startChat();
-  }
-
-  bool get isConfigured => _apiKey.isNotEmpty;
+  AiChatService();
 
   Future<String> sendMessage(String message) async {
-    if (!isConfigured) {
-      return 'I am currently in "offline mode" because the API key is not configured. Please provide a GEMINI_API_KEY to enable my full AI capabilities.';
-    }
-
     try {
-      final response = await _chat.sendMessage(Content.text(message));
-      return response.text ?? 'I encountered an issue processing your request. Could you try again?';
+      // Pointing directly to your FREE Vercel Backend
+      // This is safe to expose in the frontend because the Vercel backend handles the secret API key.
+      final String baseUrl = 'https://projectroutoapp.vercel.app/api/chat';
+      final uri = Uri.parse(baseUrl);
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'message': message}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['response'] ?? 'Sorry, I received an empty response.';
+      } else {
+        debugPrint('Backend error: ${response.statusCode} - ${response.body}');
+        return 'I encountered a server error. Please try again later.';
+      }
     } catch (e) {
-      debugPrint('Error sending message to Gemini: $e');
-      
-      final errorString = e.toString();
-      
-      // Return the exact error string so we can see what Google's servers are actually saying
-      return 'API Error:\n$errorString';
+      debugPrint('Error sending message to backend: $e');
+      return 'Connection Error: $e';
     }
   }
 }
