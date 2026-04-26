@@ -11,7 +11,11 @@ import 'widgets/ai_chatbot_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('No .env file found. Falling back to env.js or defaults.');
+  }
 
   try {
     await Firebase.initializeApp(
