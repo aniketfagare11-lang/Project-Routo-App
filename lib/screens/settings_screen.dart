@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import '../main.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 //  DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -218,9 +218,14 @@ class _SettingsScreenState extends State<SettingsScreen>
                       const LinearGradient(colors: [_C.accentA, _C.accentC]),
                   borderRadius: BorderRadius.circular(12)),
               child: ElevatedButton(
-                onPressed: () {
-                  FirebaseAuth.instance.signOut();
-                  Navigator.of(context).popUntil((r) => r.isFirst);
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const AuthWrapper()),
+                      (r) => false,
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,

@@ -13,7 +13,8 @@ import 'notifications_screen.dart';
 import 'privacy_security_screen.dart';
 import 'help_support_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import '../main.dart';
+import '../widgets/ai_chatbot_widget.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 //  DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -147,6 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     return Scaffold(
       backgroundColor: _C.bg1,
+      extendBody: true,
       body: Stack(children: [
         _buildBackground(),
         CustomScrollView(
@@ -186,7 +188,101 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         // Avatar overlay: sits ON TOP of everything, never clipped
         _buildFloatingAvatar(context),
+        const AiChatbotWidget(),
       ]),
+      bottomNavigationBar: _buildBottomNav(context),
+    );
+  }
+
+  // ── Bottom Navigation Bar ───────────────────────────────────────────────
+  Widget _buildBottomNav(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xED0F1C35),
+          border: const Border(top: BorderSide(color: _C.glassBorder, width: 0.8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.40),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  context: context,
+                  isActive: false,
+                  on: Icons.home_filled,
+                  off: Icons.home_outlined,
+                  label: 'Home',
+                  onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                ),
+                _buildNavItem(
+                  context: context,
+                  isActive: false,
+                  on: Icons.history_rounded,
+                  off: Icons.history_outlined,
+                  label: 'History',
+                  onTap: () => Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                  ),
+                ),
+                _buildNavItem(
+                  context: context,
+                  isActive: true,
+                  on: Icons.person_rounded,
+                  off: Icons.person_outline_rounded,
+                  label: 'Profile',
+                  onTap: () {}, // Already on Profile
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required BuildContext context,
+    required bool isActive,
+    required IconData on,
+    required IconData off,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: isActive ? const LinearGradient(colors: [_C.accentA, _C.accentC]) : null,
+          boxShadow: isActive
+              ? [BoxShadow(color: _C.blueGlow(0.45), blurRadius: 14, offset: const Offset(0, 3))]
+              : null,
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(isActive ? on : off, color: isActive ? Colors.white : _C.textSec, size: 24),
+          const SizedBox(height: 4),
+          Text(label,
+              style: TextStyle(
+                color: isActive ? Colors.white : _C.textSec,
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+              )),
+        ]),
+      ),
     );
   }
 
@@ -595,9 +691,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ElevatedButton(
-                onPressed: () {
-                  FirebaseAuth.instance.signOut();
-                  Navigator.of(context).popUntil((route) => route.isFirst);
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const AuthWrapper()),
+                      (route) => false,
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,

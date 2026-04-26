@@ -10,14 +10,12 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  API KEY — Loaded via --dart-define=GOOGLE_MAPS_API_KEY=xxx
+//  API KEY — Loaded via .env
 // ─────────────────────────────────────────────────────────────────────────────
-const String kGoogleMapsApiKey = String.fromEnvironment(
-  'GOOGLE_MAPS_API_KEY',
-  defaultValue: 'YOUR_GOOGLE_MAPS_API_KEY',
-);
+final String kGoogleMapsApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? 'YOUR_GOOGLE_MAPS_API_KEY';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  RESULT MODEL

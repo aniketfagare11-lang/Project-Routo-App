@@ -18,6 +18,7 @@ import 'profile_screen.dart';
 import 'history_screen.dart';
 import 'rider_route_selection_screen.dart';
 import 'rider_available_parcels_screen.dart';
+import '../widgets/ai_chatbot_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  DESIGN TOKENS
@@ -222,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Stack(
           children: [
             // ── Animated deep-space background ──
-            _buildAnimatedBackground(),
+            IgnorePointer(child: _buildAnimatedBackground()),
             // ── Main scrollable content ──
             CustomScrollView(
               physics: const BouncingScrollPhysics(),
@@ -299,6 +300,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ],
             ),
+            const AiChatbotWidget(),
           ],
         ),
       ),
@@ -1718,10 +1720,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   on: Icons.history_rounded,
                   off: Icons.history_outlined,
                   label: 'History',
-                  onTap: () {
+                  onTap: () async {
                     setState(() => _currentIndex = 1);
-                    Navigator.of(context)
+                    await Navigator.of(context)
                         .push(_slideRoute(const HistoryScreen()));
+                    if (mounted) {
+                      setState(() => _currentIndex = 0);
+                    }
                   },
                 ),
                 _buildNavItem(
@@ -1729,10 +1734,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   on: Icons.person_rounded,
                   off: Icons.person_outline_rounded,
                   label: 'Profile',
-                  onTap: () {
+                  onTap: () async {
                     setState(() => _currentIndex = 2);
-                    Navigator.of(context)
+                    await Navigator.of(context)
                         .push(_slideRoute(const ProfileScreen()));
+                    if (mounted) {
+                      setState(() => _currentIndex = 0);
+                    }
                   },
                 ),
               ],
