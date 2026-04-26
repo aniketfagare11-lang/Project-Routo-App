@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -62,7 +63,8 @@ class DirectionsService {
   }) async {
     // Graceful fallback if API key is not configured.
     if (kGoogleMapsApiKey == 'YOUR_GOOGLE_MAPS_API_KEY') {
-      debugPrint('[DirectionsService] API Key is missing. Skipping network request.');
+      debugPrint(
+          '[DirectionsService] API Key is missing. Skipping network request.');
       return null;
     }
     try {
